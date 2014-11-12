@@ -33,7 +33,7 @@ def netcdf2PCRobjCloneWithoutTime(ncFile,varName,
                                   LatitudeLongitude = False,\
                                   specificFillValue = None):
     
-    logger.info('reading variable: '+str(varName)+' from the file: '+str(ncFile))
+    logger.debug('reading variable: '+str(varName)+' from the file: '+str(ncFile))
     
     # 
     # EHS (19 APR 2013): To convert netCDF (tss) file to PCR file.
@@ -131,7 +131,7 @@ def netcdf2PCRobjClone(ncFile,varName,dateInput,\
     
     #~ print ncFile
     
-    logger.info('reading variable: '+str(varName)+' from the file: '+str(ncFile))
+    logger.debug('reading variable: '+str(varName)+' from the file: '+str(ncFile))
     
     if ncFile in filecache.keys():
         f = filecache[ncFile]
@@ -191,8 +191,8 @@ def netcdf2PCRobjClone(ncFile,varName,dateInput,\
                     msg += "WARNING related to the netcdf file: "+str(ncFile)+" ; variable: "+str(varName)+" !!!!!!"+"\n"
                     msg += "No "+str(dateInput)+" is available. The 'after' option is used while selecting netcdf time."
                     msg += "\n"
-                logger.info(msg)
-                logger.info(msg)                                   
+                logger.debug(msg)
+                logger.debug(msg)                                   
                                                   
     idx = int(idx)                                                  
 
@@ -862,8 +862,8 @@ def waterBalanceCheck(fluxesIn,fluxesOut,preStorages,endStorages,processName,Pri
             msg += "\n"
             msg += "\n"
             
-            logger.info(msg)
-            logger.info(msg)
+            logger.warn(msg)
+            logger.warn(msg)
 
             #~ pcr.report(inMap + dsMap - outMap,"wb.map")
             #~ os.system("aguila wb.map")

@@ -44,7 +44,8 @@ class DeterministicRunner(DynamicModel):
 
 def main():
     initial_state = None
-    configuration = Configuration()
+    
+    configuration = Configuration(sys.argv[1])
     
     spin_up = SpinUp(configuration)                   # object for spin_up
     
