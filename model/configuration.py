@@ -19,19 +19,16 @@ logger = logging.getLogger(__name__)
 
 class Configuration(object):
 
-    def __init__(self):
+    def __init__(self, iniFileName):
         object.__init__(self)
+
+        if iniFileName is None:
+            raise Exception('Error: No configuration file specified')
 
         # timestamp of this run, used in logging file names, etc
         self._timestamp = datetime.datetime.now()
         
-        # reading configuration file name from command line arguments
-        # Note: this may not be very useful
-        usage = 'usage: %prog [options] <model options> '
-        parser = optparse.OptionParser(usage=usage)
-        (options, arguments) = parser.parse_args()
-
-        self.iniFileName = os.path.abspath(arguments[0])
+        self.iniFileName = os.path.abspath(iniFileName)
         
         # read configuration from given file
         self.parse_configuration_file(self.iniFileName)
@@ -61,7 +58,6 @@ class Configuration(object):
         formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 
         log_level_console = "INFO"
-        log_level_file    = "DEBUG"
 
         console_level = getattr(logging, log_level_console.upper(), logging.INFO)
         if not isinstance(console_level, int):
@@ -70,23 +66,26 @@ class Configuration(object):
         #create handler, add to root logger
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
-        console_handler.setLevel(logging.DEBUG)
+        console_handler.setLevel(console_level)
         logging.getLogger().addHandler(console_handler)
 
-        log_filename = self.logFileDir + os.path.basename(self.iniFileName) + '_' + self._timestamp.isoformat() + '.log'
+        #create file handler for debug output, add to root logger
+        debug_log_filename = self.logFileDir + os.path.basename(self.iniFileName) + '_' + self._timestamp.isoformat() + '.debug.log'
+        debug_file_handler = logging.FileHandler(debug_log_filename)
+        debug_file_handler.setFormatter(formatter)
+        debug_file_handler.setLevel(logging.DEBUG)
+        logging.getLogger().addHandler(debug_file_handler)
 
-        file_level = getattr(logging, log_level_file, logging.DEBUG)
-        if not isinstance(console_level, int):
-            raise ValueError('Invalid log level: %s', log_level_file)
-
-        #create handler, add to root logger
-        file_handler = logging.FileHandler(log_filename)
-        file_handler.setFormatter(formatter)
-        file_handler.setLevel(file_level)
-        logging.getLogger().addHandler(file_handler)
+        #create file handler for info output, add to root logger
+        info_log_filename = self.logFileDir + os.path.basename(self.iniFileName) + '_' + self._timestamp.isoformat() + '.info.log'
+        info_file_handler = logging.FileHandler(info_log_filename)
+        info_file_handler.setFormatter(formatter)
+        info_file_handler.setLevel(logging.INFO)
+        logging.getLogger().addHandler(info_file_handler)
         
         logger.info('Model run started at %s', self._timestamp)
-        logger.info('Logging output to %s', log_filename)
+        logger.info('Logging output to %s', info_log_filename)
+        logger.info('Logging debug output to %s', debug_log_filename)
         
     def backup_configuration(self):
         

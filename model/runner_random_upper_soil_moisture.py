@@ -7,6 +7,8 @@ import logging
 from pcraster.framework import DynamicModel
 from pcraster.framework import DynamicFramework
 
+import pcraster as pcr
+
 from configuration import Configuration
 from currTimeStep import ModelTime
 from reporting import Reporting
@@ -33,21 +35,53 @@ class DeterministicRunner(DynamicModel):
         # re-calculate current model time using current pcraster timestep value
         self.modelTime.update(self.currentTimeStep())
 
-        # update model (will pick up current model time from model time object)
-        
         self.model.read_forcings()
         self.model.update(report_water_balance=True)
-        
 
-        #do any needed reporting for this time step        
+        # get observation data
+        sattelite_satDegUpp000005 = self.get_satDegUpp000005_from_observation()
+        
+        # set upper soil moisture state based on observation data
+        self.set_satDegUpp000005(sattelite_satDegUpp000005)                            
+
+        # do any needed reporting for this time step        
         self.reporting.report()
+
+    def get_satDegUpp000005_from_observation(self):
+
+        # assumption for observation values
+        # - this should be replaced by values from the ECV soil moisture value (sattelite data)
+        # - uncertainty should be included here
+        # - note that the value should be between 0.0 and 1.0
+        observed_satDegUpp000005 = pcr.min(1.0,\
+                                   pcr.max(0.0,\
+                                   pcr.normal(pcr.boolean(1)) + 1.0))
+        return observed_satDegUpp000005                           
+
+    def set_satDegUpp000005(self, observed_satDegUpp000005):
+
+        # ratio between observation and model
+        ratio_between_observation_and_model = pcr.ifthenelse(self.model.landSurface.satDegUpp000005> 0.0, 
+                                                             observed_satDegUpp000005 / \
+                                                             self.model.landSurface.satDegUpp000005, 0.0) 
+        
+        # updating upper soil states for all lad cover types
+        for coverType in self.model.landSurface.coverTypes:
+            
+            # correcting upper soil state (storUpp000005)
+            self.model.landSurface.landCoverObj[coverType].storUpp000005 *= ratio_between_observation_and_model
+            
+            # if model value = 0.0, storUpp000005 is calculated based on storage capacity (model parameter) and observed saturation degree   
+            self.model.landSurface.landCoverObj[coverType].storUpp000005  = pcr.ifthenelse(self.model.landSurface.satDegUpp000005 > 0.0,\
+                                                                                           self.model.landSurface.landCoverObj[coverType].storUpp000005,\
+                                                                                           observed_satDegUpp000005 * self.model.landSurface.parameters.storCapUpp000005) 
+
 
 def main():
     initial_state = None
     
-    configuration = Configuration(sys.argv[1])
-    
-    spin_up = SpinUp(configuration)                   # object for spin_up
+    configuration = Configuration(sys.argv[1])    # object to handle configuration or ini file; ini file is taken from system/comand line agurment
+    spin_up = SpinUp(configuration)            # object for spin_up
     
     currTimeStep = ModelTime() # timeStep info: year, month, day, doy, hour, etc
     
