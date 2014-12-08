@@ -99,6 +99,43 @@ class PCRGlobWB(object):
              str(variable)+"_"+
              str(self._modelTime.fulldate)+".map",\
              outputDirectory)
+
+    def dumpStateDir(self, outputDirectory):
+        #write all state to disk to facilitate restarting.
+        #uses a directory rather than filenames to denote the date
+
+        if outputDirectory == None:
+            return
+
+        stateDirectory = outputDirectory + self._modelTime.fulldate
+
+        if not os.path.exists(stateDirectory):
+            os.mkdir(stateDirectory)
+        
+        state = self.getState()
+        
+        landSurfaceState = state['landSurface']
+        
+        for coverType, coverTypeState in landSurfaceState.iteritems():
+            for variable, map in coverTypeState.iteritems():
+                vos.writePCRmapToDir(\
+                map,\
+                 str(variable)+"_"+coverType+".map",\
+                 stateDirectory)
+                
+        groundWaterState = state['groundwater']
+        for variable, map in groundWaterState.iteritems():
+            vos.writePCRmapToDir(\
+             map,\
+             str(variable)+"_"+".map",\
+             stateDirectory)
+
+        routingState = state['routing']
+        for variable, map in routingState.iteritems():
+            vos.writePCRmapToDir(\
+             map,\
+             str(variable)+"_"+".map",\
+             stateDirectory)
         
     def resume(self):
         #restore state from disk. used when restarting
@@ -156,6 +193,10 @@ class PCRGlobWB(object):
 
         self.waterBalanceAcc    =    self.waterBalanceAcc + self.waterBalance
         self.absWaterBalanceAcc = self.absWaterBalanceAcc + pcr.abs(self.waterBalance)
+
+	#HACK: write state at every timestep
+        self.dumpStateDir(self._configuration.endStateDir)
+
 
         if self._modelTime.isLastDayOfYear():
             self.dumpState(self._configuration.endStateDir)
