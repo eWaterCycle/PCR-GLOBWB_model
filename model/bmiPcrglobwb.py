@@ -119,6 +119,8 @@ class BmiPCRGlobWB(BmiRaster):
         
         self.shape = pcr.pcr2numpy(self.model.landmask, 1e20).shape
         
+
+        
         logger.info("Shape of maps is %s", str(self.shape))
         
         logger.info("PCRGlobWB Initialized")
@@ -131,21 +133,21 @@ class BmiPCRGlobWB(BmiRaster):
         self.model.read_forcings()
         self.model.update(report_water_balance=True)
         
-        
-        #numpy = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, 1e20)
-        numpy = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN)
-        print numpy.shape
-        print numpy
-        
+#         #numpy = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, 1e20)
+#         numpy = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN)
+#         print numpy.shape
+#         print numpy
         
     
     def update_until (self, time):
-        pass
+        while self.model_time.testStepPCR < time:
+            self.update()
     
     def finalize (self):
         pass
+    
     def run_model (self):
-        pass
+        self.update_until(self.get_end_time())
 
     def get_var_type (self, long_var_name):
         return 'f32'
@@ -159,11 +161,14 @@ class BmiPCRGlobWB(BmiRaster):
     def get_value (self, long_var_name):
         
         if (long_var_name == "top_layer_soil_saturation"):
-            print pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN)
-            print "\n"
-            print pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN).flat
-            print "\n"
-            return pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN)
+            value = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN)
+            
+            print value
+            sys.stdout.flush()
+            
+            doubles = value.astype(np.float64)
+            
+            return doubles
         else:
             raise Exception("unknown var name" + long_var_name)
     
@@ -220,31 +225,38 @@ class BmiPCRGlobWB(BmiRaster):
         pass
 
     def get_component_name (self):
-        pass
+        return "pcrglobwb"
+    
     def get_input_var_names (self):
-        pass
+        return ["top_layer_soil_saturation"]
     
     def get_output_var_names (self):
-        
-        state = self.model.getAllState();
-        
-        logger.info(state)
-        
+        return ["top_layer_soil_saturation"]
 
     def get_start_time (self):
-        pass
+        return 1
+        
     def get_end_time (self):
-        pass
+        return self.model_time.nrOfTimeSteps
+    
     def get_current_time (self):
-        pass
+        return self.model_time.timeStepPCR
     
     def get_grid_shape (self, long_var_name):
         return self.shape
     
     def get_grid_spacing (self, long_var_name):
-        pass
+        
+        cellsize = pcr.clone().cellSize()
+        
+        return np.array([cellsize, cellsize])
+    
     def get_grid_origin (self, long_var_name):
-        pass
+        south = pcr.clone().south()
+        west = pcr.clone().west()
+        
+        return np.array([south, west])
+
     
     
     
