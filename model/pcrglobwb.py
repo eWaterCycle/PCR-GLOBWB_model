@@ -194,9 +194,6 @@ class PCRGlobWB(object):
         self.waterBalanceAcc    =    self.waterBalanceAcc + self.waterBalance
         self.absWaterBalanceAcc = self.absWaterBalanceAcc + pcr.abs(self.waterBalance)
 
-	#HACK: write state at every timestep
-        self.dumpStateDir(self._configuration.endStateDir)
-
 
         if self._modelTime.isLastDayOfYear():
             self.dumpState(self._configuration.endStateDir)

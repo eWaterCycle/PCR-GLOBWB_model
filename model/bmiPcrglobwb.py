@@ -6,7 +6,9 @@ import numpy as np
 from currTimeStep import ModelTime
 import sys
 import logging
-from duplicity.dup_temp import SrcIter
+from reporting import Reporting
+import math
+import datetime as dt
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +103,75 @@ class BmiUnstructured (BMI):
 
 class BmiPCRGlobWB(BmiRaster):
     
+    def date_to_mjd(self, date):
+        """
+        Taken from: https://gist.github.com/jiffyclub/1294443
+        
+        Convert a date to Julian Day.
+        
+        Algorithm from 'Practical Astronomy with your Calculator or Spreadsheet', 
+            4th ed., Duffet-Smith and Zwart, 2011.
+        
+        Parameters
+        ----------
+        year : int
+            Year as integer. Years preceding 1 A.D. should be 0 or negative.
+            The year before 1 A.D. is 0, 10 B.C. is year -9.
+            
+        month : int
+            Month as integer, Jan = 1, Feb. = 2, etc.
+        
+        day : float
+            Day, may contain fractional part.
+        
+        Returns
+        -------
+        jd : float
+            Julian Day
+            
+        Examples
+        --------
+        Convert 6 a.m., February 17, 1985 to Julian Day
+        
+        >>> date_to_jd(1985,2,17.25)
+        2446113.75
+        
+        """
+        
+        year = date.year
+        month = date.month
+        day = date.day
+        
+        if month == 1 or month == 2:
+            yearp = year - 1
+            monthp = month + 12
+        else:
+            yearp = year
+            monthp = month
+        
+        # this checks where we are in relation to October 15, 1582, the beginning
+        # of the Gregorian calendar.
+        if ((year < 1582) or
+            (year == 1582 and month < 10) or
+            (year == 1582 and month == 10 and day < 15)):
+            # before start of Gregorian calendar
+            B = 0
+        else:
+            # after start of Gregorian calendar
+            A = math.trunc(yearp / 100.)
+            B = 2 - A + math.trunc(A / 4.)
+            
+        if yearp < 0:
+            C = math.trunc((365.25 * yearp) - 0.75)
+        else:
+            C = math.trunc(365.25 * yearp)
+            
+        D = math.trunc(30.6001 * (monthp + 1))
+        
+        jd = B + C + D + day + 1720994.5
+        
+        return jd - 2400000.5
+    
     def initialize (self, fileName):
         print "PCRGlobWB Initializing"
     
@@ -117,9 +188,9 @@ class BmiPCRGlobWB(BmiRaster):
          
         self.model = PCRGlobWB(self.configuration, self.model_time, initial_state)
         
-        self.shape = pcr.pcr2numpy(self.model.landmask, 1e20).shape
+        self.reporting = Reporting(self.configuration, self.model, self.model_time)
         
-
+        self.shape = pcr.pcr2numpy(self.model.landmask, 1e20).shape
         
         logger.info("Shape of maps is %s", str(self.shape))
         
@@ -132,6 +203,7 @@ class BmiPCRGlobWB(BmiRaster):
         
         self.model.read_forcings()
         self.model.update(report_water_balance=True)
+        self.reporting.report()
         
 #         #numpy = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, 1e20)
 #         numpy = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN)
@@ -140,7 +212,7 @@ class BmiPCRGlobWB(BmiRaster):
         
     
     def update_until (self, time):
-        while self.model_time.testStepPCR < time:
+        while self.get_current_time() + 0.001 < time:
             self.update()
     
     def finalize (self):
@@ -150,10 +222,10 @@ class BmiPCRGlobWB(BmiRaster):
         self.update_until(self.get_end_time())
 
     def get_var_type (self, long_var_name):
-        return 'f32'
+        return 'f8'
     
     def get_var_units (self, long_var_name):
-        pass
+        return '1'
     
     def get_var_rank (self, long_var_name):
         return 
@@ -161,14 +233,18 @@ class BmiPCRGlobWB(BmiRaster):
     def get_value (self, long_var_name):
         
         if (long_var_name == "top_layer_soil_saturation"):
-            value = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN)
+            
+            if hasattr(self.model.landSurface, 'satDegUpp000005'):
+                value = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN)
+            else:
+                value = pcr.pcr2numpy(pcr.scalar(0.0), np.NaN)
             
             print value
             sys.stdout.flush()
             
             doubles = value.astype(np.float64)
             
-            return doubles
+            return np.flipud(doubles)
         else:
             raise Exception("unknown var name" + long_var_name)
     
@@ -213,13 +289,23 @@ class BmiPCRGlobWB(BmiRaster):
         
         logger.info("setting value for %s", long_var_name)
         
+        #cast to pcraster precision
+        src = src.astype(np.float32)
+        
+        #make sure the raster is the right side up
+        src = np.flipud(src)
+        
+        logger.info("setting value for %s", long_var_name)
+        
         logger.info("setting value shape %s", src.shape)
         
         if (long_var_name == "top_layer_soil_saturation"):
             self.set_satDegUpp000005(src)
         else:
             raise Exception("unknown var name" + long_var_name)
-            
+        
+        #HACK: write state here to facilitate restarting tomorrow
+        self.model.dumpStateDir(self.configuration.endStateDir)
             
     def set_value_at_indices (self, long_var_name, inds, src):
         pass
@@ -234,13 +320,13 @@ class BmiPCRGlobWB(BmiRaster):
         return ["top_layer_soil_saturation"]
 
     def get_start_time (self):
-        return 1
+        return self.date_to_mjd(self.model_time.startTime)
         
     def get_end_time (self):
-        return self.model_time.nrOfTimeSteps
+        return self.date_to_mjd(self.model_time.endTime)
     
     def get_current_time (self):
-        return self.model_time.timeStepPCR
+        return self.date_to_mjd(self.model_time.currTime)
     
     def get_grid_shape (self, long_var_name):
         return self.shape
@@ -252,7 +338,12 @@ class BmiPCRGlobWB(BmiRaster):
         return np.array([cellsize, cellsize])
     
     def get_grid_origin (self, long_var_name):
-        south = pcr.clone().south()
+        north = pcr.clone().north()
+        cellSize = pcr.clone().cellSize()
+        nrRows = pcr.clone().nrRows()
+        
+        south = north - (cellSize * nrRows)
+        
         west = pcr.clone().west()
         
         return np.array([south, west])
