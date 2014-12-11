@@ -110,7 +110,7 @@ class PCRGlobWB(object):
         stateDirectory = outputDirectory + self._modelTime.fulldate
 
         if not os.path.exists(stateDirectory):
-            os.mkdir(stateDirectory)
+            os.makedirs(stateDirectory)
         
         state = self.getState()
         

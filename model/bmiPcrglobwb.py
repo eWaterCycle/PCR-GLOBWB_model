@@ -228,23 +228,32 @@ class BmiPCRGlobWB(BmiRaster):
         return '1'
     
     def get_var_rank (self, long_var_name):
-        return 
+        return 0
 
     def get_value (self, long_var_name):
+        logger.info("getting value for var %s", long_var_name)
         
         if (long_var_name == "top_layer_soil_saturation"):
             
             if hasattr(self.model.landSurface, 'satDegUpp000005'):
                 value = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN)
             else:
+                logger.info("model has not run yet, returning empty state for top_layer_soil_saturation")
                 value = pcr.pcr2numpy(pcr.scalar(0.0), np.NaN)
             
-            print value
-            sys.stdout.flush()
+#             print "getting var", value
+#             sys.stdout.flush()
             
             doubles = value.astype(np.float64)
             
-            return np.flipud(doubles)
+#             print "getting var as doubles!!!!", doubles
+            
+            result = np.flipud(doubles)
+            
+#             print "getting var as doubles flipped!!!!", result
+#             sys.stdout.flush()
+            
+            return result
         else:
             raise Exception("unknown var name" + long_var_name)
     
@@ -253,25 +262,36 @@ class BmiPCRGlobWB(BmiRaster):
         pass
     
     
-    def get_satDegUpp000005_from_observation(self):
-
-        # assumption for observation values
-        # - this should be replaced by values from the ECV soil moisture value (sattelite data)
-        # - uncertainty should be included here
-        # - note that the value should be between 0.0 and 1.0
-        observed_satDegUpp000005 = pcr.min(1.0,\
-                                   pcr.max(0.0,\
-                                   pcr.normal(pcr.boolean(1)) + 1.0))
-        return observed_satDegUpp000005                           
+#     def get_satDegUpp000005_from_observation(self):
+# 
+#         # assumption for observation values
+#         # - this should be replaced by values from the ECV soil moisture value (sattelite data)
+#         # - uncertainty should be included here
+#         # - note that the value should be between 0.0 and 1.0
+#         observed_satDegUpp000005 = pcr.min(1.0,\
+#                                    pcr.max(0.0,\
+#                                    pcr.normal(pcr.boolean(1)) + 1.0))
+#         return observed_satDegUpp000005                           
 
     def set_satDegUpp000005(self, src):
         mask = np.isnan(src)
         src[mask] = 1e20
         observed_satDegUpp000005 = pcr.numpy2pcr(pcr.Scalar, src, 1e20)
+        
+        pcr.report(observed_satDegUpp000005, "observed.map")
+        
+        constrained_satDegUpp000005 = pcr.min(1.0,pcr.max(0.0,observed_satDegUpp000005))
+        
+        pcr.report(constrained_satDegUpp000005, "constrained.map")
+        
+        pcr.report(self.model.landSurface.satDegUpp000005, "origmap.map")
+        diffmap = constrained_satDegUpp000005 - self.model.landSurface.satDegUpp000005
+        pcr.report(diffmap, "diffmap.map")
+        
 
         # ratio between observation and model
         ratio_between_observation_and_model = pcr.ifthenelse(self.model.landSurface.satDegUpp000005> 0.0, 
-                                                             observed_satDegUpp000005 / \
+                                                             constrained_satDegUpp000005 / \
                                                              self.model.landSurface.satDegUpp000005, 0.0) 
         
         # updating upper soil states for all lad cover types
@@ -283,19 +303,28 @@ class BmiPCRGlobWB(BmiRaster):
             # if model value = 0.0, storUpp000005 is calculated based on storage capacity (model parameter) and observed saturation degree   
             self.model.landSurface.landCoverObj[coverType].storUpp000005  = pcr.ifthenelse(self.model.landSurface.satDegUpp000005 > 0.0,\
                                                                                            self.model.landSurface.landCoverObj[coverType].storUpp000005,\
-                                                                                           observed_satDegUpp000005 * self.model.landSurface.parameters.storCapUpp000005) 
+                                                                                           constrained_satDegUpp000005 * self.model.landSurface.parameters.storCapUpp000005) 
     
     def set_value (self, long_var_name, src):
         
         logger.info("setting value for %s", long_var_name)
         
-        #cast to pcraster precision
-        src = src.astype(np.float32)
+        logger.info("dumping state to %s", self.configuration.endStateDir)
+        self.model.dumpStateDir(self.configuration.endStateDir + "/pre/")
+
+        #print "got value to set", src
         
         #make sure the raster is the right side up
         src = np.flipud(src)
         
-        logger.info("setting value for %s", long_var_name)
+        #print "flipped", src
+        
+        #cast to pcraster precision
+        src = src.astype(np.float32)
+
+        #print "as float 32", src
+        
+        sys.stdout.flush()
         
         logger.info("setting value shape %s", src.shape)
         
@@ -305,7 +334,8 @@ class BmiPCRGlobWB(BmiRaster):
             raise Exception("unknown var name" + long_var_name)
         
         #HACK: write state here to facilitate restarting tomorrow
-        self.model.dumpStateDir(self.configuration.endStateDir)
+        logger.info("dumping state to %s", self.configuration.endStateDir)
+        self.model.dumpStateDir(self.configuration.endStateDir + "/post/")
             
     def set_value_at_indices (self, long_var_name, inds, src):
         pass
