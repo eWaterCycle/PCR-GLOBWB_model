@@ -195,7 +195,7 @@ class PCRGlobWB(object):
         self.absWaterBalanceAcc = self.absWaterBalanceAcc + pcr.abs(self.waterBalance)
 
 	#TODO: hack for eWatercycle operational spinup
-	if self._modelTime.isLastDayOfYear() or self._modelTime.isLastTimestep():
+	if self._modelTime.isLastDayOfMonth() or self._modelTime.isLastTimestep():
             self.dumpStateDir(self._configuration.endStateDir)
 
 

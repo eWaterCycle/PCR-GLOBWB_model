@@ -241,17 +241,17 @@ class BmiPCRGlobWB(BmiRaster):
                 logger.info("model has not run yet, returning empty state for top_layer_soil_saturation")
                 value = pcr.pcr2numpy(pcr.scalar(0.0), np.NaN)
             
-#             print "getting var", value
-#             sys.stdout.flush()
+            #print "getting var", value
+            #sys.stdout.flush()
             
             doubles = value.astype(np.float64)
             
-#             print "getting var as doubles!!!!", doubles
+            #print "getting var as doubles!!!!", doubles
             
             result = np.flipud(doubles)
             
-#             print "getting var as doubles flipped!!!!", result
-#             sys.stdout.flush()
+            #print "getting var as doubles flipped!!!!", result
+            #sys.stdout.flush()
             
             return result
         else:
