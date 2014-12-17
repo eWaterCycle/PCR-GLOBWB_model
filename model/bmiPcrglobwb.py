@@ -9,6 +9,8 @@ import logging
 from reporting import Reporting
 import math
 import datetime as dt
+from imagemean import downsample
+
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +174,9 @@ class BmiPCRGlobWB(BmiRaster):
         
         return jd - 2400000.5
     
+    def calculate_shape(self):
+        return pcr.pcr2numpy(self.model.landmask, 1e20).shape
+    
     def initialize (self, fileName):
         print "PCRGlobWB Initializing"
     
@@ -190,7 +195,7 @@ class BmiPCRGlobWB(BmiRaster):
         
         self.reporting = Reporting(self.configuration, self.model, self.model_time)
         
-        self.shape = pcr.pcr2numpy(self.model.landmask, 1e20).shape
+        self.shape = self.calculate_shape()
         
         logger.info("Shape of maps is %s", str(self.shape))
         
@@ -378,6 +383,59 @@ class BmiPCRGlobWB(BmiRaster):
         
         return np.array([south, west])
 
+class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
     
+    factor = 5
     
+    def set_value (self, long_var_name, src):
+        #small value for comparison
+        current_value = self.get_value(long_var_name)
+         
+#         print 'current value after scaling', current_value
+#         
+#         print 'value given by user', src
+#         
+#                  
+#         diff = np.abs(src - current_value)
+#      
+#         print "diff now", diff
+#              
+#         #scale to model resolution
+#         big_ratio = np.repeat(np.repeat(diff, self.factor, axis=0), self.factor, axis=1)
+#          
+#         big_current_value = BmiPCRGlobWB.get_value(self, long_var_name)
+#          
+#         print 'big_ratio shape', big_ratio.shape
+#         print 'big_current value shape', big_current_value.shape
+#          
+#         new_value = big_ratio + big_current_value
+#         
+#         print new_value[100]
+        
+        new_value = np.repeat(np.repeat(src, self.factor, axis=0), self.factor, axis=1)
+        
+        BmiPCRGlobWB.set_value(self, long_var_name, new_value)
+    
+    def calculate_shape(self):
+        original = BmiPCRGlobWB.calculate_shape(self)
+        
+        logger.info("original shape !!! =" + str( original))
+        
+        return np.array([original[0] // self.factor, original[1] // self.factor])
+    
+    def get_value (self, long_var_name):
+        big_map = BmiPCRGlobWB.get_value(self, long_var_name)
+    
+        result = np.zeros(shape=self.get_grid_shape(long_var_name))
+    
+        downsample(big_map, result)
+        
+        return result
+        
+    def get_grid_spacing (self, long_var_name):
+        
+        cellsize = pcr.clone().cellSize()
+        
+        return np.array([cellsize / self.factor, cellsize / self.factor])
+        
     
