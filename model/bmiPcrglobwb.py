@@ -387,7 +387,7 @@ class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
     
     factor = 5
     
-    def set_value (self, long_var_name, src):
+    def set_value (self, long_var_name, scaled_new_value):
         #small value for comparison
         current_value = self.get_value(long_var_name)
          
@@ -396,23 +396,18 @@ class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
 #         print 'value given by user', src
 #         
 #                  
-#         diff = np.abs(src - current_value)
-#      
-#         print "diff now", diff
-#              
-#         #scale to model resolution
-#         big_ratio = np.repeat(np.repeat(diff, self.factor, axis=0), self.factor, axis=1)
-#          
-#         big_current_value = BmiPCRGlobWB.get_value(self, long_var_name)
-#          
-#         print 'big_ratio shape', big_ratio.shape
-#         print 'big_current value shape', big_current_value.shape
-#          
-#         new_value = big_ratio + big_current_value
-#         
-#         print new_value[100]
-        
-        new_value = np.repeat(np.repeat(src, self.factor, axis=0), self.factor, axis=1)
+        diff = scaled_new_value - current_value
+
+        print "diff now", diff
+
+        #scale to model resolution
+        big_diff = np.repeat(np.repeat(diff, self.factor, axis=0), self.factor, axis=1)
+          
+        big_current_value = BmiPCRGlobWB.get_value(self, long_var_name)
+          
+        new_value = big_current_value + big_diff
+         
+        #new_value = np.repeat(np.repeat(src, self.factor, axis=0), self.factor, axis=1)
         
         BmiPCRGlobWB.set_value(self, long_var_name, new_value)
     
