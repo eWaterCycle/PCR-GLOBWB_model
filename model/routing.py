@@ -1117,7 +1117,7 @@ class Routing(object):
             ###########################################
 
             if landSurface.limitAbstraction == True and\
-              (landSurface.includeIrrigation or landSurface.domesticWaterDemandOption or landSurface.industrycWaterDemandOption):
+              (landSurface.includeIrrigation or landSurface.domesticWaterDemandOption or landSurface.industryWaterDemandOption):
         
                 msg  = "\n"
                 msg += "\n"
@@ -1134,7 +1134,7 @@ class Routing(object):
                 water_body_allocation_volume  = None
 
             if landSurface.usingAllocSegments == False and landSurface.limitAbstraction == False and\
-              (landSurface.includeIrrigation or landSurface.domesticWaterDemandOption or landSurface.industrycWaterDemandOption):
+              (landSurface.includeIrrigation or landSurface.domesticWaterDemandOption or landSurface.industryWaterDemandOption):
         
                 logger.info("Surface water abstraction is only to satisfy local demand. No network.")
                 
@@ -1145,7 +1145,7 @@ class Routing(object):
                 water_body_allocation_volume  = water_body_abstraction_volume
             #
             if landSurface.usingAllocSegments == True and landSurface.limitAbstraction == False and \
-              (landSurface.includeIrrigation or landSurface.domesticWaterDemandOption or landSurface.industrycWaterDemandOption):
+              (landSurface.includeIrrigation or landSurface.domesticWaterDemandOption or landSurface.industryWaterDemandOption):
 
                 logger.info("Using surface water allocation.")
 
