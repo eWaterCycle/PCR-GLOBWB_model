@@ -30,7 +30,7 @@ filecache = dict()
 
 def netcdf2PCRobjCloneWithoutTime(ncFile,varName,
                                   cloneMapFileName  = None,\
-                                  LatitudeLongitude = False,\
+                                  LatitudeLongitude = True,\
                                   specificFillValue = None):
     
     logger.info('reading variable: '+str(varName)+' from the file: '+str(ncFile))
