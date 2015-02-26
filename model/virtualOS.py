@@ -95,7 +95,7 @@ def netcdf2PCRobjCloneWithoutTime(ncFile,varName,
         yIdxSta = int(np.where(abs(f.variables['lat'][:] - (yULClone - 0.5*cellsizeInput)) == minY)[0])
         yIdxEnd = int(math.ceil(yIdxSta + rowsClone /(cellsizeInput/cellsizeClone)))
         cropData = f.variables[varName][yIdxSta:yIdxEnd,xIdxSta:xIdxEnd]
-        factor = int(float(cellsizeInput)/float(cellsizeClone))
+        factor = int(round(float(cellsizeInput)/float(cellsizeClone)))
     
     # convert to PCR object and close f
     if specificFillValue != None:
@@ -238,7 +238,7 @@ def netcdf2PCRobjClone(ncFile,varName,dateInput,\
         cropData = f.variables[varName][idx,yIdxSta:yIdxEnd,xIdxSta:xIdxEnd]
 
         logger.info('Resample: input cell size = '+str(float(cellsizeInput))+' ; output/clone cell size = '+str(float(cellsizeClone)))
-        factor = int(float(cellsizeInput)/float(cellsizeClone))
+        factor = int(round(float(cellsizeInput)/float(cellsizeClone)))
     
     # convert to PCR object and close f
     if specificFillValue != None:
