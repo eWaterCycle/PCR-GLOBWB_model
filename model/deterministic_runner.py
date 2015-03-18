@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import sys
-import logging
 
 from pcraster.framework import DynamicModel
 from pcraster.framework import DynamicFramework
@@ -14,6 +14,7 @@ from spinUp import SpinUp
 
 from pcrglobwb import PCRGlobWB
 
+import logging
 logger = logging.getLogger(__name__)
 
 class DeterministicRunner(DynamicModel):
@@ -43,15 +44,28 @@ class DeterministicRunner(DynamicModel):
         self.reporting.report()
 
 def main():
-    initial_state = None
-    configuration = Configuration()
     
-    spin_up = SpinUp(configuration)                   # object for spin_up
+    # get the full path of configuration/ini file given in the system argument
+    iniFileName   = os.path.abspath(sys.argv[1])
     
-    currTimeStep = ModelTime() # timeStep info: year, month, day, doy, hour, etc
+    # debug option
+    debug_mode = False
+    if len(sys.argv) > 2: 
+        if sys.argv[2] == "debug": debug_mode = True
     
+    # object to handle configuration/ini file
+    configuration = Configuration(iniFileName = iniFileName, \
+                                  debug_mode = debug_mode)      
+
+    # timeStep info: year, month, day, doy, hour, etc
+    currTimeStep = ModelTime() 
+    
+    # object for spin_up
+    spin_up = SpinUp(configuration)            
+
     # spinningUp
     noSpinUps = int(configuration.globalOptions['maxSpinUpsInYears'])
+    initial_state = None
     if noSpinUps > 0:
         
         logger.info('Spin-Up #Total Years: '+str(noSpinUps))
