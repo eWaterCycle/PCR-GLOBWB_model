@@ -660,11 +660,20 @@ def isLastDayOfMonth(date):
 
 def getMapAttributesALL(cloneMap,arcDegree=True):
     co = ['mapattr -p %s ' %(cloneMap)]
-    cOut,err = subprocess.Popen(co, stdout=subprocess.PIPE,stderr=open('/dev/null'),shell=True).communicate()
-    if err !=None or cOut == []:
+    cOut,err = subprocess.Popen(co, stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True).communicate()
+    if cOut == []:
         print "Something wrong with mattattr in virtualOS, maybe clone Map does not exist ? "
+	print cOut
+	print err
         sys.exit()
-    cellsize = float(cOut.split()[7])
+    try:
+        cellsize = float(cOut.split()[7])
+    except:
+        print "Something wrong with mattattr in virtualOS, maybe clone Map does not exist ? "
+        print cOut
+        print err
+        sys.exit()
+	
     if arcDegree == True: cellsize = round(cellsize * 360000.)/360000.
     mapAttr = {'cellsize': float(cellsize)        ,\
                'rows'    : float(cOut.split()[3]) ,\

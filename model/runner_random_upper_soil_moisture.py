@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
-
+import logging
 from pcraster.framework import DynamicModel
 from pcraster.framework import DynamicFramework
 
@@ -15,7 +15,6 @@ from spinUp import SpinUp
 
 from pcrglobwb import PCRGlobWB
 
-import logging
 logger = logging.getLogger(__name__)
 
 class DeterministicRunner(DynamicModel):

@@ -44,7 +44,6 @@ class DeterministicRunner(DynamicModel):
         self.reporting.report()
 
 def main():
-    
     # get the full path of configuration/ini file given in the system argument
     iniFileName   = os.path.abspath(sys.argv[1])
     

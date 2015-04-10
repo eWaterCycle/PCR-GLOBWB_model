@@ -116,6 +116,9 @@ class ModelTime(object):
     def isFirstTimestep(self):
         return self.timeStepPCR == 1
 
+    def isLastTimestep(self):
+        return self.timeStepPCR == self.nrOfTimeSteps
+
     def isFirstDayOfMonth(self):
         return self.day == 1
     

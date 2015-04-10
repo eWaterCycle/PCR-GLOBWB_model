@@ -96,6 +96,43 @@ class PCRGlobWB(object):
              str(variable)+"_"+
              str(self._modelTime.fulldate)+".map",\
              outputDirectory)
+
+    def dumpStateDir(self, outputDirectory):
+        #write all state to disk to facilitate restarting.
+        #uses a directory rather than filenames to denote the date
+
+        if outputDirectory == None:
+            return
+
+        stateDirectory = outputDirectory + self._modelTime.fulldate
+
+        if not os.path.exists(stateDirectory):
+            os.makedirs(stateDirectory)
+        
+        state = self.getState()
+        
+        landSurfaceState = state['landSurface']
+        
+        for coverType, coverTypeState in landSurfaceState.iteritems():
+            for variable, map in coverTypeState.iteritems():
+                vos.writePCRmapToDir(\
+                map,\
+                 str(variable)+"_"+coverType+".map",\
+                 stateDirectory)
+                
+        groundWaterState = state['groundwater']
+        for variable, map in groundWaterState.iteritems():
+            vos.writePCRmapToDir(\
+             map,\
+             str(variable)+"_"+".map",\
+             stateDirectory)
+
+        routingState = state['routing']
+        for variable, map in routingState.iteritems():
+            vos.writePCRmapToDir(\
+             map,\
+             str(variable)+"_"+".map",\
+             stateDirectory)
         
     def resume(self):
         #restore state from disk. used when restarting
@@ -175,6 +212,13 @@ class PCRGlobWB(object):
         self.dischargeAtPitAcc        += self.routing.outgoing_volume_at_pits       # unit: m3
         
         if self._modelTime.isLastDayOfYear() or self._modelTime.isLastTimeStep():
+
+	#TODO: hack for eWatercycle operational spinup
+	if self._modelTime.isLastDayOfMonth() or self._modelTime.isLastTimestep():
+            self.dumpStateDir(self._configuration.endStateDir)
+
+
+        if self._modelTime.isLastDayOfYear():
             self.dumpState(self._configuration.endStateDir)
             
             logger.info("")
