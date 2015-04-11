@@ -175,12 +175,14 @@ class BmiPCRGlobWB(BmiRaster):
         return jd - 2400000.5
     
     def calculate_shape(self):
-        return pcr.pcr2numpy(self.model.landmask, 1e20).shape
+        #return pcr.pcr2numpy(self.model.landmask, 1e20).shape
+	return (pcr.clone().nrRows(), pcr.clone().nrCols())
     
     def initialize (self, fileName):
-        print "PCRGlobWB Initializing"
+        print "PCRGlobWB Partly Initializing"
     
         self.configuration = Configuration(fileName)
+	pcr.setclone(self.configuration.cloneMap)
         
         #set start and end time based on configuration
         self.model_time = ModelTime()
@@ -189,19 +191,38 @@ class BmiPCRGlobWB(BmiRaster):
         
         self.model_time.update(0)
         
-        initial_state = None
+        self.shape = self.calculate_shape()
+
+        print "Shape of maps is %s" % str(self.shape)
+        sys.stdout.flush()
+
+	self.model = None
+
+    #TODO: more ugly hacks to ged rid of
+    #actually initialize model. Here so that it can be called on-demand (and hopefully in parallel)
+    def initialize_model(self):
+	if self.model is not None:
+	    #already did this, we are done
+	    return
+
+        print "PCRGlobWB Completely Initializing!"
+	#import traceback
+	#traceback.print_stack(file=sys.stdout)
+        sys.stdout.flush()
          
+        initial_state = None
         self.model = PCRGlobWB(self.configuration, self.model_time, initial_state)
         
         self.reporting = Reporting(self.configuration, self.model, self.model_time)
         
-        self.shape = self.calculate_shape()
-        
         logger.info("Shape of maps is %s", str(self.shape))
+        
         
         logger.info("PCRGlobWB Initialized")
         
     def update (self):
+        self.initialize_model()
+
         timestep = self.model_time.timeStepPCR
         
         self.model_time.update(timestep + 1)
@@ -217,6 +238,7 @@ class BmiPCRGlobWB(BmiRaster):
         
     
     def update_until (self, time):
+        self.initialize_model()
         while self.get_current_time() + 0.001 < time:
             self.update()
     
@@ -240,7 +262,7 @@ class BmiPCRGlobWB(BmiRaster):
         
         if (long_var_name == "top_layer_soil_saturation"):
             
-            if hasattr(self.model.landSurface, 'satDegUpp000005'):
+            if self.model is not None and hasattr(self.model.landSurface, 'satDegUpp000005'):
                 value = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN)
             else:
                 logger.info("model has not run yet, returning empty state for top_layer_soil_saturation")
@@ -308,9 +330,13 @@ class BmiPCRGlobWB(BmiRaster):
             # if model value = 0.0, storUpp000005 is calculated based on storage capacity (model parameter) and observed saturation degree   
             self.model.landSurface.landCoverObj[coverType].storUpp000005  = pcr.ifthenelse(self.model.landSurface.satDegUpp000005 > 0.0,\
                                                                                            self.model.landSurface.landCoverObj[coverType].storUpp000005,\
-                                                                                           constrained_satDegUpp000005 * self.model.landSurface.parameters.storCapUpp000005) 
+                                                                                           constrained_satDegUpp000005 * self.model.landSurface.parameters.storCapUpp000005)
+            # correct for any scaling issues (value < 0 or > 1 do not make sense
+            self.model.landSurface.landCoverObj[coverType].storUpp000005 = pcr.min(1.0,pcr.max(0.0,self.model.landSurface.landCoverObj[coverType].storUpp000005))
+ 
     
     def set_value (self, long_var_name, src):
+        self.initialize_model()
         
         logger.info("setting value for %s", long_var_name)
         
@@ -373,6 +399,7 @@ class BmiPCRGlobWB(BmiRaster):
         return np.array([cellsize, cellsize])
     
     def get_grid_origin (self, long_var_name):
+
         north = pcr.clone().north()
         cellSize = pcr.clone().cellSize()
         nrRows = pcr.clone().nrRows()
@@ -391,11 +418,10 @@ class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
         #small value for comparison
         current_value = self.get_value(long_var_name)
          
-#         print 'current value after scaling', current_value
-#         
-#         print 'value given by user', src
-#         
-#                  
+        print 'current value after scaling', current_value
+         
+        print 'value given by user', scaled_new_value
+                  
         diff = scaled_new_value - current_value
 
         print "diff now", diff
@@ -420,10 +446,21 @@ class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
     
     def get_value (self, long_var_name):
         big_map = BmiPCRGlobWB.get_value(self, long_var_name)
-    
+   
+	print "getting value original shape " + str(big_map.shape)
+	print "original size " + str(big_map.size)
+	print "nans in original " + str(np.count_nonzero(np.isnan(big_map)))
+
         result = np.zeros(shape=self.get_grid_shape(long_var_name))
     
         downsample(big_map, result)
+
+	print "getting value new shape " + str(result.shape)
+	print "result size " + str(result.size)
+	print "nans count in result " + str(np.count_nonzero(np.isnan(result)))
+
+        print "getting value", result
+        sys.stdout.flush()
         
         return result
         
@@ -431,6 +468,6 @@ class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
         
         cellsize = pcr.clone().cellSize()
         
-        return np.array([cellsize / self.factor, cellsize / self.factor])
+        return np.array([cellsize * self.factor, cellsize * self.factor])
         
     

@@ -2,7 +2,6 @@ cimport cython
 from libc.math cimport isnan, NAN
 
 @cython.boundscheck(False)
-@cython.cdivision(True)
 def downsample(double[:, :] input, double[:, :] output):
     cdef Py_ssize_t i, j, k, l
     cdef double total, x
@@ -19,4 +18,7 @@ def downsample(double[:, :] input, double[:, :] output):
                     if not isnan(x):
                         total += x
                         non_nan += 1
-            output[i, j] = total / non_nan
+            if non_nan != 0:
+                output[i, j] = total / non_nan
+            else:
+                output[i, j] = NAN
