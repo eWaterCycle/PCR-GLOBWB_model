@@ -211,11 +211,10 @@ class PCRGlobWB(object):
         self.surfaceWaterInputAcc     += self.routing.local_input_to_surface_water  # unit: m3
         self.dischargeAtPitAcc        += self.routing.outgoing_volume_at_pits       # unit: m3
         
-        if self._modelTime.isLastDayOfYear() or self._modelTime.isLastTimeStep():
-
 	#TODO: hack for eWatercycle operational spinup
-	if self._modelTime.isLastDayOfMonth() or self._modelTime.isLastTimestep():
-            self.dumpStateDir(self._configuration.endStateDir)
+	#if self._modelTime.isLastDayOfMonth() or self._modelTime.isLastTimestep():
+	#TODO: extra hack! dump every state
+        self.dumpStateDir(self._configuration.endStateDir)
 
 
         if self._modelTime.isLastDayOfYear():
