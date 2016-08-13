@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class Configuration(object):
 
-    def __init__(self, iniFileName, debug_mode = False, no_modification = True):
+    def __init__(self, iniFileName, debug_mode = False, no_modification = True, relative_ini_meteo_paths = False):
         object.__init__(self)
 
         if iniFileName is None:
@@ -36,7 +36,11 @@ class Configuration(object):
         
         # read configuration from given file
         self.parse_configuration_file(self.iniFileName)
-        
+
+        #Added this option to be able to run PCRGlobWB in a sandbox with meteo files and initial conditions
+        if relative_ini_meteo_paths:
+            self.make_ini_meteo_paths_absolute()
+
         # if no_modification, set configuration directly (otherwise, the function/method  
         if no_modification: self.set_configuration()
 
@@ -54,9 +58,24 @@ class Configuration(object):
 
         # repair key names of initial conditions
         self.repair_ini_key_names()
-        
 
-    # make absolute to cwd when config was created        
+    def make_ini_meteo_paths_absolute(self):
+        for section in self.allSections:
+            sec = getattr(self, section)
+
+            for key, value in sec.iteritems():
+                if key.endswith("Ini") and value is not None and value != 'None':
+                    sec[key] = os.path.abspath(value)
+
+                if key == 'precipitationNC' or key == 'temperatureNC':
+                    sec[key] = os.path.abspath(value)
+
+            for key, value in sec.iteritems():
+                if key.endswith("Ini"):
+                    if not os.path.exists(value):
+                        print key, ":", value
+
+    # make absolute to cwd when config was created
     def make_absolute_path(self, path):
         return os.path.normpath(os.path.join(self._cwd, path))
 

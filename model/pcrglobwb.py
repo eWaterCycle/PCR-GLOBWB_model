@@ -99,12 +99,11 @@ class PCRGlobWB(object):
 
     def dumpStateDir(self, outputDirectory):
         #write all state to disk to facilitate restarting.
-        #uses a directory rather than filenames to denote the date
 
         if outputDirectory == None:
             return
 
-        stateDirectory = outputDirectory + self._modelTime.fulldate
+        stateDirectory = outputDirectory
 
         if not os.path.exists(stateDirectory):
             os.makedirs(stateDirectory)
