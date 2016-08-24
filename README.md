@@ -1,4 +1,4 @@
-PCR-GLOBWB
+PCR-GLOBWB - eWaterCycle
 ==========
 
 Copyright 2016 Utrecht University
@@ -13,4 +13,6 @@ See the "LICENSE" file for more information.
 
 Please also see the file README.txt.
 
-This is the eWateCycle Specific version of PCRGLobWB, containing (amongst others) a BMI interface for PCRGlobWB
+**This is the eWateCycle Specific version of PCRGLobWB, containing (amongst others) a BMI interface for PCRGlobWB**
+
+**It is strongly adviced to use the main version of PCRGlobWB whenever possible, as it contains multiple improvements not in this version**
