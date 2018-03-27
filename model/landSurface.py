@@ -653,7 +653,7 @@ class LandSurface(object):
         if iniItems.landSurfaceOptions['desalinationWater'] not in ["None", "False"]:
             logger.info("Monthly desalination water is included.")
             self.includeDesalination = True
-            self.desalinationWaterFile = iniItems.landSurfaceOptions['desalinationWater']
+            self.desalinationWaterFile = vos.getFullPath(iniItems.landSurfaceOptions['desalinationWater'], self.inputDir)
         else:    
             logger.info("Monthly desalination water is NOT included.")
 
@@ -678,7 +678,7 @@ class LandSurface(object):
 
         else:
 
-            logger.info("Water demand is satisfied by local source only.")
+            logger.info("If there is any, water demand is satisfied by local source only.")
 
 
     def scaleNaturalLandCoverFractions(self): 
