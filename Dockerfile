@@ -1,4 +1,5 @@
-# DockertFile for the Massive-PotreeConverter
+# DockerFile for PCR-GLOB model. The ini-file should be mounted as config.ini,
+# the input data root directory should be mounted as /data
 FROM ewatercycle/pcraster-container:latest
 MAINTAINER Gijs van den Oord <g.vandenoord@esciencecenter.nl>
 COPY . /opt/PCR-GLOBWB_model/
