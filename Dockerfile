@@ -8,4 +8,4 @@ VOLUME /data
 VOLUME /config.ini
 ENV PYTHONPATH /usr/local/python/
 WORKDIR /opt/PCR-GLOBWB_model/model
-CMD ["python","./deterministic_runner.py","/config.ini"]
+CMD ["python","./deterministic_runner.py","/config.ini","/data"]

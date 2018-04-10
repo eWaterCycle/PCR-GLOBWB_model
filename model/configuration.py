@@ -39,7 +39,8 @@ import disclaimer
 
 class Configuration(object):
 
-    def __init__(self, iniFileName, debug_mode = False, no_modification = True, system_arguments = None, relative_ini_meteo_paths = False):
+    def __init__(self, iniFileName, debug_mode = False, no_modification = True, system_arguments = None,
+                 relative_ini_meteo_paths = False, inputDir = None):
         object.__init__(self)
 
         if iniFileName is None:
@@ -59,6 +60,10 @@ class Configuration(object):
         
         # read configuration from given file
         self.parse_configuration_file(self.iniFileName)
+
+        # override configuration file
+        if inputDir is not None:
+            self.globalOptions['inputDir'] = os.path.abspath(inputDir)
 
         # added this option to be able to run in a sandbox with meteo files and initial conditions
         self.using_relative_path_for_output_directory = False
