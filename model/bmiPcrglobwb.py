@@ -131,9 +131,11 @@ class BmiPCRGlobWB(EBmi):
     def get_var_rank(self, long_var_name):
         return 0
 
+    #TODO: This should be get_var_itemsize
     def get_var_size(self, long_var_name):
         return np.prod(self.get_grid_shape(long_var_name))
 
+    # TODO: Raises exception in python 2.7
     def get_var_nbytes(self, long_var_name):
         return self.get_var_size(long_var_name) * np.float64.itemsize
 
@@ -152,6 +154,7 @@ class BmiPCRGlobWB(EBmi):
     def get_time_units(self):
         return "Days since 1901-01-01"
 
+    # TODO: Raises exception when attribute is missing, fix this
     def get_value(self, long_var_name):
         logger.info("getting value for var %s", long_var_name)
 
@@ -276,6 +279,7 @@ class BmiPCRGlobWB(EBmi):
     def set_value_at_indices(self, long_var_name, inds, src):
         raise NotImplementedError
 
+    # TODO: Nonstandard BMI: work with grid ids
     def get_grid_type(self, long_var_name):
         return BmiGridType.UNIFORM
 

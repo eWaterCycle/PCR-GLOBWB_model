@@ -8,4 +8,5 @@ VOLUME /data
 VOLUME /config.ini
 ENV PYTHONPATH /usr/local/python/
 WORKDIR /opt/PCR-GLOBWB_model/model
+RUN python setup.py install
 CMD ["python","./deterministic_runner.py","/config.ini","/data"]
