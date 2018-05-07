@@ -3,7 +3,7 @@
 FROM ewatercycle/pcraster-container:latest
 MAINTAINER Gijs van den Oord <g.vandenoord@esciencecenter.nl>
 COPY . /opt/PCR-GLOBWB_model/
-RUN pip install netCDF4
+RUN pip install netCDF4 Cython
 VOLUME /data
 VOLUME /config.ini
 ENV PYTHONPATH /usr/local/python/
