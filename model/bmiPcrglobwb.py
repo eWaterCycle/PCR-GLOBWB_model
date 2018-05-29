@@ -39,7 +39,7 @@ class BmiPCRGlobWB(EBmi):
 
         try:
 
-            self.configuration = Configuration(fileName, relative_ini_meteo_paths = True)
+            self.configuration = Configuration(fileName)
             pcr.setclone(self.configuration.cloneMap)
 
             # set start and end time based on configuration
