@@ -17,89 +17,90 @@ logger = logging.getLogger(__name__)
 
 
 class BmiPCRGlobWB(EBmi):
-    #we use the same epoch as pcrglobwb netcdf reporting
-    def days_since_industry_epoch(self, modeltime):
-        return (modeltime - datetime.date(1901, 1, 1)).days
 
-    def in_modeltime(self, days_since_industry_epoch):
-        return (datetime.datetime(1901, 1, 1) + datetime.timedelta(days=days_since_industry_epoch)).date()
+    epoch_start_date = datetime.date(1901, 1, 1)
+    routing_variables = {"channel_water__volume" : ("channelStorage", "m3"),
+                         "model_grid_cell_water~outgoing__volume_flow_rate" : ("discharge", "m3 s-1"),
+                         "soil_water__infiltration_volume_flux" : ("riverbedExchange", "m3 day-1")}
+
+    waterbody_variables = {"lake_water~incoming__volume_flow_rate": ("inflow", "m3 s-1"),
+                           "lake_water~outgoing__volume_flow_rate": ("waterBodyOutflow", "m3 s-1")}
+
+    landsurface_variables = {"model_soil_layer__count" : ("numberOfSoilLayers", None)}
+
+    #we use the same epoch as pcrglobwb netcdf reporting
+    @staticmethod
+    def days_since_industry_epoch(model_time):
+        return (model_time - BmiPCRGlobWB.epoch_start_date).days
+
+    @staticmethod
+    def in_modeltime(days_since_industry_epoch):
+        return BmiPCRGlobWB.epoch_start_date + datetime.timedelta(days=days_since_industry_epoch)
+
+    def __init__(self):
+        self.configuration = None
+        self.model = None
+        self.model_time = None
+        self.shape = None
+        self.reporting = None
+        self.output = {}
+        self.output.update(BmiPCRGlobWB.routing_variables)
+        self.output.update(BmiPCRGlobWB.waterbody_variables)
+        self.output.update(BmiPCRGlobWB.landsurface_variables)
 
     def calculate_shape(self):
-        # return pcr.pcr2numpy(self.model.landmask, 1e20).shape
-        return (pcr.clone().nrRows(), pcr.clone().nrCols())
+        return pcr.clone().nrRows(), pcr.clone().nrCols()
 
     #BMI initialize (as a single step)
-    def initialize(self, fileName):
-        self.initialize_config(fileName)
+    def initialize(self, file_name):
+        self.initialize_config(file_name)
         self.initialize_model()
 
     #EBMI initialize (first step of two)
-    def initialize_config(self, fileName):
+    def initialize_config(self, filename):
         logger.info("PCRGlobWB: initialize_config")
-
         try:
-
-            self.configuration = Configuration(fileName)
+            self.configuration = Configuration(filename)
             pcr.setclone(self.configuration.cloneMap)
 
             # set start and end time based on configuration
             self.model_time = ModelTime()
             self.model_time.getStartEndTimeSteps(self.configuration.globalOptions['startTime'],
-                                             self.configuration.globalOptions['endTime'])
-
+                                                 self.configuration.globalOptions['endTime'])
             self.model_time.update(0)
-
             self.shape = self.calculate_shape()
-
             logger.info("Shape of maps is %s", str(self.shape))
-
-            self.model = None
-
         except:
             import traceback
             traceback.print_exc()
             raise
 
-
     #EBMI initialize (second step of two)
-    def initialize_model(self):
+    def initialize_model(self, source_directory):
         if self.model is not None:
             #already initialized
             return
-
         try:
-
-            logger.info("PCRGlobWB: initialize_model")
-
+            logger.info("PCRGlobWB: initialize_model, source dir %s is not used" % source_directory)
             initial_state = None
             self.model = PCRGlobWB(self.configuration, self.model_time, initial_state)
-
             self.reporting = Reporting(self.configuration, self.model, self.model_time)
-
             logger.info("Shape of maps is %s", str(self.shape))
-
             logger.info("PCRGlobWB Initialized")
-
         except:
             import traceback
             traceback.print_exc()
             raise
 
-
-
     def update(self):
         timestep = self.model_time.timeStepPCR
-
+        if self.model is None:
+            raise ValueError("Model has not been initialized, unable to start time stepping")
         self.model_time.update(timestep + 1)
-
         self.model.read_forcings()
         self.model.update(report_water_balance=True)
-        self.reporting.report()
-
-    #         #numpy = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, 1e20)
-    #         numpy = pcr.pcr2numpy(self.model.landSurface.satDegUpp000005, np.NaN)
-    #         print numpy.shape
-    #         print numpy
+        if self.reporting is not None:
+            self.reporting.report()
 
 
     def update_until(self, time):
@@ -107,10 +108,14 @@ class BmiPCRGlobWB(EBmi):
             self.update()
 
     def update_frac(self, time_frac):
-        raise NotImplementedError
+        raise NotImplementedError("pcrglobwb does not support fractional time steps")
 
     def finalize(self):
-        pass
+        self.configuration = None
+        self.model = None
+        self.model_time = None
+        self.shape = None
+        self.reporting = None
 
     def get_component_name(self):
         return "pcrglobwb"
@@ -119,25 +124,28 @@ class BmiPCRGlobWB(EBmi):
         return ["top_layer_soil_saturation"]
 
     def get_output_var_names(self):
-        return ["top_layer_soil_saturation"]
+        return BmiPCRGlobWB.routing_variables.keys() + BmiPCRGlobWB.waterbody_variables.keys() \
+               + BmiPCRGlobWB.landsurface_variables.keys()
 
     def get_var_type(self, long_var_name):
-        return 'float64'
+        if long_var_name == "model_soil_layer__count":
+            return np.int32
+        return np.float32
 
     def get_var_units(self, long_var_name):
-        #TODO: this is not a proper unit
-        return '1'
+        return self.output[long_var_name][1]
 
     def get_var_rank(self, long_var_name):
-        return 0
+        return 1
 
-    #TODO: This should be get_var_itemsize
     def get_var_size(self, long_var_name):
-        return np.prod(self.get_grid_shape(long_var_name))
+        return self.get_var_itemsize(long_var_name)
 
-    # TODO: Raises exception in python 2.7
+    def get_var_itemsize(self, long_var_name):
+        return self.get_var_type(long_var_name).itemsize
+
     def get_var_nbytes(self, long_var_name):
-        return self.get_var_size(long_var_name) * np.float64.itemsize
+        return np.prod(self.get_grid_shape(long_var_name)) * self.get_var_itemsize(long_var_name)
 
     def get_start_time(self):
         return self.days_since_industry_epoch(self.model_time.startTime)
@@ -151,14 +159,35 @@ class BmiPCRGlobWB(EBmi):
     def get_time_step(self):
         return 1
 
+    # TODO: Add time zone info?
     def get_time_units(self):
-        return "Days since 1901-01-01"
+        return "days since " + str(BmiPCRGlobWB.epoch_start_date)
 
     # TODO: Raises exception when attribute is missing, fix this
     def get_value(self, long_var_name):
         logger.info("getting value for var %s", long_var_name)
-
-        if (long_var_name == "top_layer_soil_saturation"):
+        pcrvar = BmiPCRGlobWB.routing_variables.get(long_var_name, None)
+        if pcrvar is not None:
+            pcrdata = getattr(self.model.routing, pcrvar[0])
+            remasked = pcr.ifthen(self.model.landmask, pcr.cover(pcrdata, 0.0))
+            pcr.report(pcrdata, "value.map")
+            pcr.report(remasked, "remasked.map")
+            return np.flipud(pcr.pcr2numpy(remasked, np.NaN))
+        pcrvar = BmiPCRGlobWB.waterbody_variables.get(long_var_name, None)
+        if pcrvar is not None:
+            pcrdata = getattr(self.model.routing.WaterBodies, pcrvar[0])
+            remasked = pcr.ifthen(self.model.landmask, pcr.cover(pcrdata, 0.0))
+            pcr.report(pcrdata, "value.map")
+            pcr.report(remasked, "remasked.map")
+            return np.flipud(pcr.pcr2numpy(remasked, np.NaN))
+        pcrvar = BmiPCRGlobWB.landsurface_variables.get(long_var_name, None)
+        if pcrvar is not None:
+            pcrdata = getattr(self.model.landSurface, pcrvar[0])
+            remasked = pcr.ifthen(self.model.landmask, pcr.cover(pcrdata, 0.0))
+            pcr.report(pcrdata, "value.map")
+            pcr.report(remasked, "remasked.map")
+            return np.flipud(pcr.pcr2numpy(remasked, np.NaN))
+        if long_var_name == "top_layer_soil_saturation":
 
             if self.model is not None and hasattr(self.model.landSurface, 'satDegUpp000005'):
 
@@ -191,19 +220,8 @@ class BmiPCRGlobWB(EBmi):
         else:
             raise Exception("unknown var name" + long_var_name)
 
-    def get_value_at_indices(self, long_var_name, inds):
-        raise NotImplementedError
-
-    #     def get_satDegUpp000005_from_observation(self):
-    #
-    #         # assumption for observation values
-    #         # - this should be replaced by values from the ECV soil moisture value (sattelite data)
-    #         # - uncertainty should be included here
-    #         # - note that the value should be between 0.0 and 1.0
-    #         observed_satDegUpp000005 = pcr.min(1.0,\
-    #                                    pcr.max(0.0,\
-    #                                    pcr.normal(pcr.boolean(1)) + 1.0))
-    #         return observed_satDegUpp000005
+    def get_value_at_indices(self, long_var_name, indices):
+        return self.get_value(long_var_name)[indices]
 
     def set_satDegUpp000005(self, src):
         mask = np.isnan(src)
@@ -267,7 +285,7 @@ class BmiPCRGlobWB(EBmi):
 
         logger.info("setting value shape %s", src.shape)
 
-        if (long_var_name == "top_layer_soil_saturation"):
+        if long_var_name == "top_layer_soil_saturation":
             self.set_satDegUpp000005(src)
         else:
             raise Exception("unknown var name" + long_var_name)
@@ -282,9 +300,6 @@ class BmiPCRGlobWB(EBmi):
     # TODO: Nonstandard BMI: work with grid ids
     def get_grid_type(self, long_var_name):
         return BmiGridType.UNIFORM
-
-    def get_grid_shape(self, long_var_name):
-        return
 
     def get_grid_shape(self, long_var_name):
         return self.shape
@@ -348,7 +363,8 @@ class BmiPCRGlobWB(EBmi):
 
 
 
-class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
+class ScaledBmiPCRGlobWB(BmiPCRGlobWB)
+
     factor = 5
 
     def set_value(self, long_var_name, scaled_new_value):
