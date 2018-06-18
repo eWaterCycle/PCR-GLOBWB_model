@@ -1,17 +1,19 @@
 #! /usr/bin/env python
-from configuration import Configuration
-from pcrglobwb import PCRGlobWB
-import pcraster as pcr
-import numpy as np
-from currTimeStep import ModelTime
-import sys
-import logging
-from reporting import Reporting
-from imagemean import downsample
-from bmi import EBmi
-from bmi import BmiGridType
 import datetime
-import os
+import logging
+import sys
+from imagemean import downsample
+
+import numpy as np
+import pcraster as pcr
+
+from bmi import BmiGridType
+from bmi import EBmi
+from configuration import Configuration
+from currTimeStep import ModelTime
+from pcrglobwb import PCRGlobWB
+from reporting import Reporting
+import variable_list
 
 logger = logging.getLogger(__name__)
 
@@ -19,16 +21,10 @@ logger = logging.getLogger(__name__)
 class BmiPCRGlobWB(EBmi):
 
     epoch_start_date = datetime.date(1901, 1, 1)
-    routing_variables = {"channel_water__volume" : ("channelStorage", "m3"),
-                         "model_grid_cell_water~outgoing__volume_flow_rate" : ("discharge", "m3 s-1"),
-                         "soil_water__infiltration_volume_flux" : ("riverbedExchange", "m3 day-1")}
 
-    waterbody_variables = {"lake_water~incoming__volume_flow_rate": ("inflow", "m3 s-1"),
-                           "lake_water~outgoing__volume_flow_rate": ("waterBodyOutflow", "m3 s-1")}
+    scalar_variables = ["flood_innundation_depth"]
 
-    landsurface_variables = {"model_soil_layer__count" : ("numberOfSoilLayers", None)}
-
-    #we use the same epoch as pcrglobwb netcdf reporting
+    # we use the same epoch as pcrglobwb netcdf reporting
     @staticmethod
     def days_since_industry_epoch(model_time):
         return (model_time - BmiPCRGlobWB.epoch_start_date).days
@@ -43,20 +39,33 @@ class BmiPCRGlobWB(EBmi):
         self.model_time = None
         self.shape = None
         self.reporting = None
+
+    def update_output(self):
         self.output = {}
-        self.output.update(BmiPCRGlobWB.routing_variables)
-        self.output.update(BmiPCRGlobWB.waterbody_variables)
-        self.output.update(BmiPCRGlobWB.landsurface_variables)
+        if self.model is None:
+            return
+        submodels = [self.model,
+                     self.model.routing,
+                     self.model.routing.WaterBodies,
+                     self.model.landSurface,
+                     self.model.meteo,
+                     self.model.groundwater]
+
+        for key in variable_list.netcdf_short_name:
+            for submodel in submodels:
+                if hasattr(submodel, key):
+                    self.output[key] = submodel
+                    break
 
     def calculate_shape(self):
         return pcr.clone().nrRows(), pcr.clone().nrCols()
 
-    #BMI initialize (as a single step)
-    def initialize(self, file_name):
-        self.initialize_config(file_name)
-        self.initialize_model()
+    # BMI initialize (as a single step)
+    def initialize(self, filename):
+        self.initialize_config(filename)
+        self.initialize_model("<empty>")
 
-    #EBMI initialize (first step of two)
+    # EBMI initialize (first step of two)
     def initialize_config(self, filename):
         logger.info("PCRGlobWB: initialize_config")
         try:
@@ -75,10 +84,10 @@ class BmiPCRGlobWB(EBmi):
             traceback.print_exc()
             raise
 
-    #EBMI initialize (second step of two)
+    # EBMI initialize (second step of two)
     def initialize_model(self, source_directory):
         if self.model is not None:
-            #already initialized
+            # already initialized
             return
         try:
             logger.info("PCRGlobWB: initialize_model, source dir %s is not used" % source_directory)
@@ -102,7 +111,6 @@ class BmiPCRGlobWB(EBmi):
         if self.reporting is not None:
             self.reporting.report()
 
-
     def update_until(self, time):
         while self.get_current_time() + 0.001 < time:
             self.update()
@@ -124,16 +132,20 @@ class BmiPCRGlobWB(EBmi):
         return ["top_layer_soil_saturation"]
 
     def get_output_var_names(self):
-        return BmiPCRGlobWB.routing_variables.keys() + BmiPCRGlobWB.waterbody_variables.keys() \
-               + BmiPCRGlobWB.landsurface_variables.keys()
+        result = []
+        for k in variable_list.netcdf_short_name:
+            if hasattr(self.reporting, k):
+                result.append(variable_list.netcdf_short_name[k])
+        return result
 
-    def get_var_type(self, long_var_name):
-        if long_var_name == "model_soil_layer__count":
+    def get_var_type(self, var_name):
+        if var_name == "soil_layer_count":
             return np.int32
         return np.float32
 
-    def get_var_units(self, long_var_name):
-        return self.output[long_var_name][1]
+    def get_var_units(self, var_name):
+        attribute = [n for n in variable_list.netcdf_short_name if variable_list.netcdf_short_name[n] == var_name][0]
+        return variable_list.netcdf_unit[attribute]
 
     def get_var_rank(self, long_var_name):
         return 1
@@ -164,61 +176,16 @@ class BmiPCRGlobWB(EBmi):
         return "days since " + str(BmiPCRGlobWB.epoch_start_date)
 
     # TODO: Raises exception when attribute is missing, fix this
-    def get_value(self, long_var_name):
-        logger.info("getting value for var %s", long_var_name)
-        pcrvar = BmiPCRGlobWB.routing_variables.get(long_var_name, None)
-        if pcrvar is not None:
-            pcrdata = getattr(self.model.routing, pcrvar[0])
-            remasked = pcr.ifthen(self.model.landmask, pcr.cover(pcrdata, 0.0))
-            pcr.report(pcrdata, "value.map")
-            pcr.report(remasked, "remasked.map")
-            return np.flipud(pcr.pcr2numpy(remasked, np.NaN))
-        pcrvar = BmiPCRGlobWB.waterbody_variables.get(long_var_name, None)
-        if pcrvar is not None:
-            pcrdata = getattr(self.model.routing.WaterBodies, pcrvar[0])
-            remasked = pcr.ifthen(self.model.landmask, pcr.cover(pcrdata, 0.0))
-            pcr.report(pcrdata, "value.map")
-            pcr.report(remasked, "remasked.map")
-            return np.flipud(pcr.pcr2numpy(remasked, np.NaN))
-        pcrvar = BmiPCRGlobWB.landsurface_variables.get(long_var_name, None)
-        if pcrvar is not None:
-            pcrdata = getattr(self.model.landSurface, pcrvar[0])
-            remasked = pcr.ifthen(self.model.landmask, pcr.cover(pcrdata, 0.0))
-            pcr.report(pcrdata, "value.map")
-            pcr.report(remasked, "remasked.map")
-            return np.flipud(pcr.pcr2numpy(remasked, np.NaN))
-        if long_var_name == "top_layer_soil_saturation":
-
-            if self.model is not None and hasattr(self.model.landSurface, 'satDegUpp000005'):
-
-                #first make all NanS into 0.0 with cover, then cut out the model using the landmask.
-                # This should not actually make a difference.
-                remasked = pcr.ifthen(self.model.landmask, pcr.cover(self.model.landSurface.satDegUpp000005, 0.0))
-
-                pcr.report(self.model.landSurface.satDegUpp000005, "value.map")
-                pcr.report(remasked, "remasked.map")
-
-                value = pcr.pcr2numpy(remasked, np.NaN)
-
-            else:
-                logger.info("model has not run yet, returning empty state for top_layer_soil_saturation")
-                value = pcr.pcr2numpy(pcr.scalar(0.0), np.NaN)
-
-            # print "getting var", value
-            # sys.stdout.flush()
-
-            doubles = value.astype(np.float64)
-
-            # print "getting var as doubles!!!!", doubles
-
-            result = np.flipud(doubles)
-
-            # print "getting var as doubles flipped!!!!", result
-            # sys.stdout.flush()
-
-            return result
-        else:
-            raise Exception("unknown var name" + long_var_name)
+    def get_value(self, var_name):
+        logger.info("getting value for var %s", var_name)
+        attribute = [n for n in variable_list.netcdf_short_name if variable_list.netcdf_short_name[n] == var_name][0]
+        pcrdata = getattr(self.reporting, attribute)
+        if var_name in BmiPCRGlobWB.scalar_variables:
+            return var_name
+        remasked = pcr.ifthen(self.model.landmask, pcr.cover(pcrdata, 0.0))
+        pcr.report(pcrdata, "value.map")
+        pcr.report(remasked, "remasked.map")
+        return np.flipud(pcr.pcr2numpy(remasked, np.NaN))
 
     def get_value_at_indices(self, long_var_name, indices):
         return self.get_value(long_var_name)[indices]
@@ -337,7 +304,7 @@ class BmiPCRGlobWB(EBmi):
     def get_grid_offset(self, long_var_name):
         raise ValueError
 
-    #EBMI functions
+    # EBMI functions
 
     def set_start_time(self, start_time):
         self.model_time.setStartTime(self.in_modeltime(start_time))
@@ -362,9 +329,7 @@ class BmiPCRGlobWB(EBmi):
         raise NotImplementedError
 
 
-
-class ScaledBmiPCRGlobWB(BmiPCRGlobWB)
-
+class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
     factor = 5
 
     def set_value(self, long_var_name, scaled_new_value):
