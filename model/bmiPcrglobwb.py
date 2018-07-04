@@ -92,8 +92,80 @@ class BmiPCRGlobWB(EBmi):
         try:
             logger.info("PCRGlobWB: initialize_model, source dir %s is not used" % source_directory)
             initial_state = None
+
             self.model = PCRGlobWB(self.configuration, self.model_time, initial_state)
+
+            self.model.meteo.temperature = pcr.scalar(0.0)
+            self.model.meteo.precipitation = pcr.scalar(0.0)
+            self.model.meteo.referencePotET = pcr.scalar(0.0)
+
+            self.model.landSurface.totalPotET = pcr.scalar(0.0)
+            self.model.landSurface.actualET = pcr.scalar(0.0)
+            self.model.landSurface.storUppTotal = pcr.scalar(0.0)
+            self.model.landSurface.storLowTotal = pcr.scalar(0.0)
+            self.model.landSurface.interceptEvap = pcr.scalar(0.0)
+            self.model.landSurface.actSnowFreeWaterEvap = pcr.scalar(0.0)
+            self.model.landSurface.openWaterEvap = pcr.scalar(0.0)
+            self.model.landSurface.actBareSoilEvap = pcr.scalar(0.0)
+            self.model.landSurface.actTranspiTotal = pcr.scalar(0.0)
+            self.model.landSurface.actTranspiUppTotal = pcr.scalar(0.0)
+            self.model.landSurface.actTranspiLowTotal = pcr.scalar(0.0)
+            self.model.landSurface.directRunoff = pcr.scalar(0.0)
+            self.model.landSurface.interflowTotal = pcr.scalar(0.0)
+            self.model.landSurface.infiltration = pcr.scalar(0.0)
+            self.model.landSurface.gwRecharge = pcr.scalar(0.0)
+            self.model.landSurface.satDegUppTotal = pcr.scalar(0.0)
+            self.model.landSurface.satDegLowTotal = pcr.scalar(0.0)
+            self.model.landSurface.desalinationAbstraction = pcr.scalar(0.0)
+            self.model.landSurface.actSurfaceWaterAbstract = pcr.scalar(0.0)
+            self.model.landSurface.irrGrossDemand = pcr.scalar(0.0)
+            self.model.landSurface.nonIrrGrossDemand = pcr.scalar(0.0)
+            self.model.landSurface.totalPotentialGrossDemand = pcr.scalar(0.0)
+            self.model.landSurface.domesticGrossDemand = pcr.scalar(0.0)
+            self.model.landSurface.domesticNettoDemand = pcr.scalar(0.0)
+            self.model.landSurface.industryGrossDemand = pcr.scalar(0.0)
+            self.model.landSurface.industryNettoDemand = pcr.scalar(0.0)
+            self.model.landSurface.livestockGrossDemand = pcr.scalar(0.0)
+            self.model.landSurface.livestockNettoDemand = pcr.scalar(0.0)
+            self.model.landSurface.totalSto = pcr.scalar(0.0)
+            self.model.landSurface.allocSurfaceWaterAbstract = pcr.scalar(0.0)
+            self.model.landSurface.desalinationAllocation = pcr.scalar(0.0)
+            self.model.landSurface.snowMelt = pcr.scalar(0.0)
+            self.model.landSurface.netLqWaterToSoil = pcr.scalar(0.0)
+            self.model.landSurface.nonIrrReturnFlow = pcr.scalar(0.0)
+            self.model.landSurface.totalPotentialMaximumGrossDemand = pcr.scalar(0.0)
+            self.model.landSurface.irrGrossDemandPaddy = pcr.scalar(0.0)
+            self.model.landSurface.irrGrossDemandNonPaddy = pcr.scalar(0.0)
+            self.model.landSurface.domesticWaterWithdrawal = pcr.scalar(0.0)
+            self.model.landSurface.industryWaterWithdrawal = pcr.scalar(0.0)
+            self.model.landSurface.livestockWaterWithdrawal = pcr.scalar(0.0)
+            self.model.landSurface.domesticReturnFlowFraction = pcr.scalar(0.0)
+            self.model.landSurface.industryReturnFlowFraction = pcr.scalar(0.0)
+            self.model.landSurface.livestockReturnFlowFraction = pcr.scalar(0.0)
+            if self.model.landSurface.numberOfSoilLayers == 3:
+                self.model.landSurface.storUpp000005 = pcr.scalar(0.0)
+                self.model.landSurface.storUpp005030 = pcr.scalar(0.0)
+                self.model.landSurface.storLow030150 = pcr.scalar(0.0)
+                self.model.landSurface.satDegUpp000005 = pcr.scalar(0.0)
+
+            self.model.groundwater.nonFossilGroundwaterAbs = pcr.scalar(0.0)
+            self.model.groundwater.fossilGroundwaterAbstr = pcr.scalar(0.0)
+            self.model.groundwater.allocNonFossilGroundwater = pcr.scalar(0.0)
+            self.model.groundwater.unmetDemand = pcr.scalar(0.0)
+
+            self.model.routing.waterBodyEvaporation = pcr.scalar(0.0)
+            self.model.routing.waterBodyPotEvap = pcr.scalar(0.0)
+            self.model.routing.runoff = pcr.scalar(0.0)
+            self.model.routing.disChanWaterBody = pcr.scalar(0.0)
+            self.model.routing.dynamicFracWat = pcr.scalar(0.0)
+            self.model.routing.local_input_to_surface_water = pcr.scalar(0.0)
+            self.model.routing.nonIrrWaterConsumption = pcr.scalar(0.0)
+            self.model.routing.WaterBodies.waterBodyIds = pcr.scalar(0.0)
+            self.model.routing.WaterBodies.waterBodyStorage = pcr.scalar(0.0)
+
             self.reporting = Reporting(self.configuration, self.model, self.model_time)
+            self.reporting.post_processing()
+
             logger.info("Shape of maps is %s", str(self.shape))
             logger.info("PCRGlobWB Initialized")
         except:
@@ -132,11 +204,7 @@ class BmiPCRGlobWB(EBmi):
         return ["top_layer_soil_saturation"]
 
     def get_output_var_names(self):
-        result = []
-        for k in variable_list.netcdf_short_name:
-            if hasattr(self.reporting, k):
-                result.append(variable_list.netcdf_short_name[k])
-        return result
+        return variable_list.netcdf_short_name.values()
 
     def get_var_type(self, var_name):
         if var_name == "soil_layer_count":
