@@ -201,10 +201,21 @@ class BmiPCRGlobWB(EBmi):
         return "pcrglobwb"
 
     def get_input_var_names(self):
-        return ["near_surface_soil_saturation_degree"]
+        if self.model.landSurface.numberOfSoilLayers == 3:
+            return ["near_surface_soil_saturation_degree"]
+        return []
 
     def get_output_var_names(self):
-        return variable_list.netcdf_short_name.values()
+        if self.model.landSurface.numberOfSoilLayers == 3:
+            return variable_list.netcdf_short_name.values()
+        else:
+            netcdf_short_name=variable_list.netcdf_short_name.copy()
+            netcdf_short_name.pop("satDegUppSurface")
+            netcdf_short_name.pop("storUppSurface")
+            netcdf_short_name.pop("storUpp000005")
+            netcdf_short_name.pop("storUpp005030")
+            netcdf_short_name.pop("storLow030150")
+            return netcdf_short_name.values()
 
     def get_var_type(self, var_name):
         if var_name == "soil_layer_count":
