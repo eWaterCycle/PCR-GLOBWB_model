@@ -201,7 +201,7 @@ class BmiPCRGlobWB(EBmi):
         return "pcrglobwb"
 
     def get_input_var_names(self):
-        return ["top_layer_soil_saturation"]
+        return ["near_surface_soil_saturation_degree"]
 
     def get_output_var_names(self):
         return variable_list.netcdf_short_name.values()
@@ -320,7 +320,7 @@ class BmiPCRGlobWB(EBmi):
 
         logger.info("setting value shape %s", src.shape)
 
-        if long_var_name == "top_layer_soil_saturation":
+        if long_var_name == "near_surface_soil_saturation_degree":
             self.set_satDegUpp000005(src)
         else:
             raise Exception("unknown var name" + long_var_name)
