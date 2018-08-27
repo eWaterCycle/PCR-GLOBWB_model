@@ -332,20 +332,23 @@ class BmiPCRGlobWB(EBmi):
     def set_value_at_indices(self, long_var_name, inds, src):
         raise NotImplementedError
 
-    # TODO: Nonstandard BMI: work with grid ids
-    def get_grid_type(self, long_var_name):
-        return BmiGridType.UNIFORM
+    # grid_id is always 0
+    def get_var_grid(self, long_var_name):
+        return 0
 
-    def get_grid_shape(self, long_var_name):
+    def get_grid_type(self, grid_id):
+        return "uniform_rectilinear_grid"
+
+    def get_grid_shape(self, grid_id):
         return self.shape
 
-    def get_grid_spacing(self, long_var_name):
+    def get_grid_spacing(self, grid_id):
 
         cellsize = pcr.clone().cellSize()
 
         return np.array([cellsize, cellsize])
 
-    def get_grid_origin(self, long_var_name):
+    def get_grid_origin(self, grid_id):
 
         north = pcr.clone().north()
         cellSize = pcr.clone().cellSize()
@@ -356,6 +359,9 @@ class BmiPCRGlobWB(EBmi):
         west = pcr.clone().west()
 
         return np.array([south, west])
+
+    def get_grid_rank(self, grid_id):
+        return len(self.shape)
 
     def get_grid_x(self, long_var_name):
         raise ValueError
