@@ -267,7 +267,7 @@ class BmiPCRGlobWB(EBmi):
         return np.flipud(pcr.pcr2numpy(remasked, np.NaN))
 
     def get_value_at_indices(self, long_var_name, indices):
-        return self.get_value(long_var_name)[indices]
+        return self.get_value(long_var_name).take(indices)
 
     def set_satDegUpp000005(self, src):
         mask = np.isnan(src)
