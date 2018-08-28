@@ -374,13 +374,20 @@ class BmiPCRGlobWB(EBmi):
     def get_grid_rank(self, grid_id):
         return len(self.shape)
 
-    def get_grid_x(self, long_var_name):
-        raise ValueError
+    def get_grid_x(self, grid_id):
+        north = pcr.clone().north()
+        cellSize = pcr.clone().cellSize()
+        nrRows = pcr.clone().nrRows()
+        south = north - (cellSize * nrRows)
+        spacing=pcr.clone().cellSize()
+        return south+spacing*(np.arange(nrRows)+0.5)
 
-    def get_grid_y(self, long_var_name):
-        raise ValueError
+    def get_grid_y(self, grid_id):
+        west = pcr.clone().west()
+        spacing=pcr.clone().cellSize()
+        return west+spacing*(np.arange(self.shape[1])+0.5)
 
-    def get_grid_z(self, long_var_name):
+    def get_grid_z(self, grid_id):
         raise ValueError
 
     def get_grid_connectivity(self, long_var_name):
