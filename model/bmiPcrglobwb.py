@@ -148,6 +148,14 @@ class BmiPCRGlobWB(EBmi):
                 self.model.landSurface.storLow030150 = pcr.scalar(0.0)
                 self.model.landSurface.satDegUpp000005 = pcr.scalar(0.0)
 
+            if self.model.landSurface.includeIrrigation:
+                self.model.landSurface.landCoverObj['irrPaddy'].netLqWaterToSoil = pcr.scalar(0.0)
+                self.model.landSurface.landCoverObj['irrNonPaddy'].netLqWaterToSoil = pcr.scalar(0.0)
+                self.model.landSurface.landCoverObj['irrPaddy'].actualET = pcr.scalar(0.0)
+                self.model.landSurface.landCoverObj['irrNonPaddy'].actualET = pcr.scalar(0.0)
+                self.model.landSurface.landCoverObj['irrPaddy'].actTranspiTotal = pcr.scalar(0.0)
+                self.model.landSurface.landCoverObj['irrNonPaddy'].actTranspiTotal = pcr.scalar(0.0)
+
             self.model.groundwater.nonFossilGroundwaterAbs = pcr.scalar(0.0)
             self.model.groundwater.fossilGroundwaterAbstr = pcr.scalar(0.0)
             self.model.groundwater.allocNonFossilGroundwater = pcr.scalar(0.0)
