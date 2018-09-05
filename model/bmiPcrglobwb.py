@@ -162,6 +162,10 @@ class BmiPCRGlobWB(EBmi):
             self.model.routing.nonIrrWaterConsumption = pcr.scalar(0.0)
             self.model.routing.WaterBodies.waterBodyIds = pcr.scalar(0.0)
             self.model.routing.WaterBodies.waterBodyStorage = pcr.scalar(0.0)
+            if self.model.routing.floodPlain:
+                self.model.routing.floodDepth = pcr.scalar(0.0)
+                self.model.routing.channelStorageCapacity = pcr.scalar(0.0)
+                self.model.routing.channelStorage = pcr.scalar(0.0)
 
             self.reporting = Reporting(self.configuration, self.model, self.model_time)
             self.reporting.post_processing()
