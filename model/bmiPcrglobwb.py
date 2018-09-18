@@ -2,7 +2,11 @@
 import datetime
 import logging
 import sys
-from imagemean import downsample
+try:
+  from imagemean import downsample
+  HAVE_DOWNSAMPLE=True
+except:
+  HAVE_DOWNSAMPLE=False
 
 import numpy as np
 import pcraster as pcr
@@ -475,7 +479,10 @@ class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
 
         result = np.zeros(shape=self.get_grid_shape(long_var_name))
 
-        downsample(big_map, result)
+        if HAVE_DOWNSAMPLE:
+            downsample(big_map, result)
+        else:
+            raise Exception("no downsample, cython compile imagemean")
 
         print "getting value new shape " + str(result.shape)
         print "result size " + str(result.size)
