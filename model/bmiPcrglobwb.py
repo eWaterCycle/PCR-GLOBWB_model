@@ -176,6 +176,7 @@ class BmiPCRGlobWB(EBmi):
             self.model.routing.WaterBodies.waterBodyStorage = pcr.scalar(0.0)
             if self.model.routing.floodPlain:
                 self.model.routing.floodDepth = pcr.scalar(0.0)
+                self.model.routing.floodVolume = pcr.scalar(0.0)
                 self.model.routing.channelStorageCapacity = pcr.scalar(0.0)
                 self.model.routing.channelStorage = pcr.scalar(0.0)
 
@@ -222,16 +223,38 @@ class BmiPCRGlobWB(EBmi):
         return []
 
     def get_output_var_names(self):
-        if self.model.landSurface.numberOfSoilLayers == 3:
-            return variable_list.netcdf_short_name.values()
-        else:
-            netcdf_short_name=variable_list.netcdf_short_name.copy()
+        netcdf_short_name=variable_list.netcdf_short_name.copy()      
+        if self.model.landSurface.numberOfSoilLayers != 3:
             netcdf_short_name.pop("satDegUppSurface")
             netcdf_short_name.pop("storUppSurface")
             netcdf_short_name.pop("storUpp000005")
             netcdf_short_name.pop("storUpp005030")
             netcdf_short_name.pop("storLow030150")
-            return netcdf_short_name.values()
+        if not self.model.routing.floodPlain:
+            netcdf_short_name.pop("floodDepth")
+            netcdf_short_name.pop("floodVolume")
+        if not "land_surface_water_balance" in self.reporting.variables_for_report:
+            netcdf_short_name.pop("land_surface_water_balance")
+# modflow variables
+        netcdf_short_name.pop("groundwaterHeadLayer1")
+        netcdf_short_name.pop("groundwaterHeadLayer2")
+        netcdf_short_name.pop("groundwaterDepthLayer1")
+        netcdf_short_name.pop("groundwaterDepthLayer2")
+        netcdf_short_name.pop("groundwaterHead")
+        netcdf_short_name.pop("groundwaterDepth")
+        netcdf_short_name.pop("relativeGroundwaterHead")
+        netcdf_short_name.pop("groundwaterVolumeEstimate")
+        netcdf_short_name.pop("groundwaterThicknessEstimate")
+        netcdf_short_name.pop("top_uppermost_layer")
+        netcdf_short_name.pop("bottom_uppermost_layer")
+        netcdf_short_name.pop("bottom_lowermost_layer")
+# random stuff not available/implemented (yet?)
+        netcdf_short_name.pop("test")
+        netcdf_short_name.pop("accuRunoff")
+        netcdf_short_name.pop("accuTotalRunoff")
+        netcdf_short_name.pop("irrWaterConsumption")
+        netcdf_short_name.pop("irrReturnFlow")
+        return netcdf_short_name.values()
 
     def get_var_type(self, var_name):
         if var_name == "soil_layer_count":
