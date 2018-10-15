@@ -65,6 +65,7 @@ class Configuration(object):
         if inputDir is not None:
             self.globalOptions['inputDir'] = os.path.abspath(inputDir)
 
+        self.globalOptions['inputDir'] = os.path.abspath(self.globalOptions['inputDir'])
         self.globalOptions['outputDir'] = os.path.abspath(self.globalOptions['outputDir'])
 
         # added this option to be able to run in a sandbox with meteo files and initial conditions
