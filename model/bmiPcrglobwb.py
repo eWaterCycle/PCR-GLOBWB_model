@@ -22,6 +22,7 @@ import virtualOS as vos
 
 logger = logging.getLogger(__name__)
 
+import ETPFunctions as refPotET
 
 class BmiPCRGlobWB(EBmi):
 
@@ -44,6 +45,7 @@ class BmiPCRGlobWB(EBmi):
         self.model_time = None
         self.shape = None
         self.reporting = None
+        self._use_interface_forcings=False
 
     def update_output(self):
         self.output = {}
@@ -191,12 +193,24 @@ class BmiPCRGlobWB(EBmi):
             traceback.print_exc()
             raise
 
+    def _calc_refPotET(self):
+        # calculate referencePotET
+        # see the comment in update of meteo - this should move there
+        if self.model.meteo.refETPotMethod == 'Hamon': 
+            self.model.meteo.referencePotET = refPotET.HamonPotET(self.model.meteo.temperature,
+                                                      self.model_time.doy,
+                                                      self.model.meteo.latitudes)
+
+
     def update(self):
         timestep = self.model_time.timeStepPCR
         if self.model is None:
             raise ValueError("Model has not been initialized, unable to start time stepping")
         self.model_time.update(timestep + 1)
-        self.model.read_forcings()
+        if not self._use_interface_forcings:
+            self.model.read_forcings()
+        else:
+            self._calc_refPotET()
         self.model.update(report_water_balance=True)
         if self.reporting is not None:
             self.reporting.report()
@@ -219,11 +233,15 @@ class BmiPCRGlobWB(EBmi):
         return "pcrglobwb"
 
     def get_input_var_names(self):
+        input_var_names=[]
+        
         if self.model.landSurface.numberOfSoilLayers == 3:
-            return ["near_surface_soil_saturation_degree"]
+            input_var_names.extend(["near_surface_soil_saturation_degree"])
         if self.model.landSurface.numberOfSoilLayers == 2:
-            return ["upper_soil_saturation_degree"]
-        return []
+            input_var_names.extend(["upper_soil_saturation_degree"])
+        if self._use_interface_forcings:
+            input_var_names.extend(["precipitation", "temperature"])
+        return input_var_names
 
     def get_output_var_names(self):
         netcdf_short_name=variable_list.netcdf_short_name.copy()      
@@ -415,6 +433,44 @@ class BmiPCRGlobWB(EBmi):
         self.reporting.satDegUpp=self.model.landSurface.satDegUppTotal
         self.reporting.storUpp=self.model.landSurface.storUppTotal
 
+    def set_precipitation(self,src):
+        mask = np.isnan(src)
+        src[mask] = 1e20
+        precipitation = pcr.numpy2pcr(pcr.Scalar, src, 1e20)
+
+        precipitation = pcr.ifthen(self.model.meteo.landmask, precipitation)
+        #-----------------------------------------------------------------------
+
+        # make sure that precipitation is always positive
+        precipitation = pcr.max(0., precipitation)
+        precipitation = pcr.cover(  precipitation, 0.0)
+        
+        # ignore very small values of precipitation (less than 0.00001 m/day or less than 0.01 kg.m-2.day-1 )
+        if self.model.meteo.usingDailyTimeStepForcingData:
+            precipitation = pcr.rounddown(precipitation*100000.)/100000.
+        
+        self.model.meteo.precipitation = precipitation
+
+        self.reporting.precipitation  = pcr.ifthen(self.model.routing.landmask, self.model.meteo.precipitation)
+
+        # update derived tbd
+
+    def set_temperature(self,src):
+        mask = np.isnan(src)
+        src[mask] = 1e20
+        temperature = pcr.numpy2pcr(pcr.Scalar, src, 1e20)
+
+        temperature = pcr.ifthen(self.model.meteo.landmask, temperature)
+        #-----------------------------------------------------------------------
+
+        temperature = pcr.max(0., temperature)
+        temperature = pcr.cover( temperature, 0.0)
+                
+        self.model.meteo.temperature = temperature
+
+        self.reporting.temperature  = pcr.ifthen(self.model.routing.landmask, self.model.meteo.temperature)
+
+
     def set_value(self, long_var_name, src):
 
         if self.model is None:
@@ -446,6 +502,10 @@ class BmiPCRGlobWB(EBmi):
             self.set_satDegUpp000005(src)
         elif long_var_name == "upper_soil_saturation_degree":
             self.set_satDegUpp(src)
+        elif long_var_name == "precipitation":
+            self.set_precipitation(src)
+        elif long_var_name == "temperature":
+            self.set_temperature(src)
         else:
             raise Exception("unknown var name" + long_var_name)
 
