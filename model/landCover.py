@@ -3,10 +3,10 @@
 #
 # PCR-GLOBWB (PCRaster Global Water Balance) Global Hydrological Model
 #
-# Copyright (C) 2016, Ludovicus P. H. (Rens) van Beek, Edwin H. Sutanudjaja, Yoshihide Wada,
-# Joyce H. C. Bosmans, Niels Drost, Inge E. M. de Graaf, Kor de Jong, Patricia Lopez Lopez,
-# Stefanie Pessenteiner, Oliver Schmitz, Menno W. Straatsma, Niko Wanders, Dominik Wisser,
-# and Marc F. P. Bierkens,
+# Copyright (C) 2016, Edwin H. Sutanudjaja, Rens van Beek, Niko Wanders, Yoshihide Wada, 
+# Joyce H. C. Bosmans, Niels Drost, Ruud J. van der Ent, Inge E. M. de Graaf, Jannis M. Hoch, 
+# Kor de Jong, Derek Karssenberg, Patricia López López, Stefanie Peßenteiner, Oliver Schmitz, 
+# Menno W. Straatsma, Ekkamol Vannametee, Dominik Wisser, and Marc F. P. Bierkens
 # Faculty of Geosciences, Utrecht University, Utrecht, The Netherlands
 #
 # This program is free software: you can redistribute it and/or modify
@@ -59,7 +59,7 @@ class LandCover(object):
         if iniItems.landSurfaceOptions['limitAbstraction'] == "True": self.limitAbstraction = True
         
         # if using MODFLOW, limitAbstraction must be True (the abstraction cannot exceed storGroundwater)
-        if "useMODFLOW" in iniItems.groundwaterOptions.keys():
+        if "useMODFLOW" in list(iniItems.groundwaterOptions.keys()):
             if iniItems.groundwaterOptions["useMODFLOW"] == "True": self.limitAbstraction = True
         
         # includeIrrigation
@@ -73,7 +73,7 @@ class LandCover(object):
         # - "Original" is principally the same as defined in van Beek et al., 2014 (default)
         # - "Modified" is with a modification by Edwin Sutanudjaja: extending interception definition, using totalPotET for the available energy  
         self.interceptionModuleType = "Original"
-        if "interceptionModuleType" in self.iniItemsLC.keys():
+        if "interceptionModuleType" in list(self.iniItemsLC.keys()):
             if self.iniItemsLC['interceptionModuleType'] == "Modified":
                 msg = 'Using the "Modified" version of the interception module (i.e. extending interception definition, using totalPotET for the available energy for the interception process).'
                 logger.info(msg)
@@ -87,7 +87,7 @@ class LandCover(object):
         
         # minimum interception capacity (only used if interceptionModuleType == "Modified", extended interception definition)
         self.minInterceptCap = 0.0
-        if self.interceptionModuleType == "Original" and "minInterceptCap" in self.iniItemsLC.keys():
+        if self.interceptionModuleType == "Original" and "minInterceptCap" in list(self.iniItemsLC.keys()):
             msg = 'As the "Original" interceptionModuleType is used, the "minInterceptCap" value is ignored. The interception scope is only "canopy".'
             logger.warning(msg)
         if self.interceptionModuleType == "Modified":
@@ -105,14 +105,14 @@ class LandCover(object):
         # - In the "Original" work of van Beek et al., 2011 there is no "directRunoff reduction"
         # - However, later (20 April 2011), Rens van Beek introduce this reduction, particularly to maintain soil saturation. This is currently the "Default" method. 
         self.improvedArnoSchemeMethod = "Default"
-        if "improvedArnoSchemeMethod" in iniItems.landSurfaceOptions.keys():
+        if "improvedArnoSchemeMethod" in list(iniItems.landSurfaceOptions.keys()):
             self.improvedArnoSchemeMethod = iniItems.landSurfaceOptions['improvedArnoSchemeMethod']
             if self.improvedArnoSchemeMethod == "Original": logger.warning("Using the old/original approach of Improved Arno Scheme. No reduction for directRunoff.")
 
         # In the original oldcalc script of Rens (2 layer model), the percolation percUpp (P1) can be negative
         # - To avoid this, Edwin changed few lines (see the method updateSoilStates)
         self.allowNegativePercolation = False
-        if 'allowNegativePercolation' in self.iniItemsLC.keys() and self.iniItemsLC['allowNegativePercolation'] == "True":
+        if 'allowNegativePercolation' in list(self.iniItemsLC.keys()) and self.iniItemsLC['allowNegativePercolation'] == "True":
             msg  = 'Allowing negative values of percolation percUpp (P1), as done in the oldcalc script of PCR-GLOBWB 1.0. \n'
             msg += 'Note that this option is only relevant for the two layer soil model.'
             logger.warning(msg)
@@ -121,7 +121,7 @@ class LandCover(object):
         # In the original oldcalc script of Rens, there is a possibility that rootFraction/transpiration is only defined in the bottom layer, while no root in upper layer(s) 
         # - To avoid this, Edwin changed few lines (see the methods 'scaleRootFractionsFromTwoLayerSoilParameters' and 'estimateTranspirationAndBareSoilEvap')
         self.usingOriginalOldCalcRootTranspirationPartitioningMethod = False
-        if 'usingOriginalOldCalcRootTranspirationPartitioningMethod' in self.iniItemsLC.keys() and self.iniItemsLC['usingOriginalOldCalcRootTranspirationPartitioningMethod'] == "True":
+        if 'usingOriginalOldCalcRootTranspirationPartitioningMethod' in list(self.iniItemsLC.keys()) and self.iniItemsLC['usingOriginalOldCalcRootTranspirationPartitioningMethod'] == "True":
             msg  = 'Using the original rootFraction/transpiration as defined in the oldcalc script of PCR-GLOBWB 1.0. \n'
             msg += 'There is a possibility that rootFraction/transpiration is only defined in the bottom layer, while no root in upper layer(s).'
             logger.warning(msg)
@@ -153,7 +153,7 @@ class LandCover(object):
 
         # an option to introduce changes of land cover parameters (not only fracVegCover)
         self.noAnnualChangesInLandCoverParameter = True
-        if 'annualChangesInLandCoverParameters' in iniItems.landSurfaceOptions.keys():
+        if 'annualChangesInLandCoverParameters' in list(iniItems.landSurfaceOptions.keys()):
             if iniItems.landSurfaceOptions['annualChangesInLandCoverParameters'] == "True": self.noAnnualChangesInLandCoverParameter = False
         
         # get land cover parameters that are fixed for the entire simulation
@@ -201,16 +201,36 @@ class LandCover(object):
               self.cloneMap, self.tmpDir, self.inputDir)
             cellArea = pcr.ifthen(self.landmask, cellArea)                  
 
+            # reading the allocation zone file
             self.allocSegments = vos.readPCRmapClone(\
              iniItems.landSurfaceOptions['allocationSegmentsForGroundSurfaceWater'],
              self.cloneMap,self.tmpDir,self.inputDir,isLddMap=False,cover=None,isNomMap=True)
             self.allocSegments = pcr.ifthen(self.landmask, self.allocSegments)
+            self.allocSegments = pcr.clump(self.allocSegments)
         
-            #~ self.allocSegments = pcr.clump(self.allocSegments)       # According to Menno, "clump" is NOT recommended.
+            # extrapolate it 
+            self.allocSegments = pcr.cover(self.allocSegments, \
+                                           pcr.windowmajority(self.allocSegments, 0.5))
+            self.allocSegments = pcr.ifthen(self.landmask, self.allocSegments)
+            
+            # clump it and cover the rests with cell ids 
+            self.allocSegments = pcr.clump(self.allocSegments)
+            cell_ids = pcr.mapmaximum(pcr.scalar(self.allocSegments)) + pcr.scalar(100.0) + pcr.uniqueid(pcr.boolean(1.0))
+            self.allocSegments = pcr.cover(self.allocSegments, pcr.nominal(cell_ids))                               
+            self.allocSegments = pcr.clump(self.allocSegments)
+            self.allocSegments = pcr.ifthen(self.landmask, self.allocSegments)
         
+            # zonal/segment areas (unit: m2)
             self.segmentArea = pcr.areatotal(pcr.cover(cellArea, 0.0), self.allocSegments)
             self.segmentArea = pcr.ifthen(self.landmask, self.segmentArea)
 
+        # option to prioritize local sources before abstracting water from neighboring cells
+        self.prioritizeLocalSourceToMeetWaterDemand = iniItems.landSurfaceOptions['prioritizeLocalSourceToMeetWaterDemand'] == "True"
+        if self.prioritizeLocalSourceToMeetWaterDemand:
+            msg = "Local water sources are first used before abstracting water from neighboring cells"
+            logger.info(msg)
+        
+        
         # get the names of cropCoefficient files:
         self.cropCoefficientNC = vos.getFullPath(self.iniItemsLC['cropCoefficientNC'], self.inputDir)
 
@@ -222,17 +242,17 @@ class LandCover(object):
                       #~ self.iniItemsLC['coverFractionNC'], self.inputDir)
         
         # get the file names of interceptCap and coverFraction files:
-        if 'interceptCapNC' in self.iniItemsLC.keys() and 'coverFractionNC' in self.iniItemsLC.keys():
+        if 'interceptCapNC' in list(self.iniItemsLC.keys()) and 'coverFractionNC' in list(self.iniItemsLC.keys()):
             self.interceptCapNC = vos.getFullPath(\
                        self.iniItemsLC['interceptCapNC'], self.inputDir)
             self.coverFractionNC = vos.getFullPath(\
                       self.iniItemsLC['coverFractionNC'], self.inputDir)
         else:
-			msg = 'The netcdf files for interceptCapNC (interception capacity) and/or coverFraction (canopy cover fraction) are NOT defined for the landCover type: ' + self.name + '\n'
-			msg = 'This run assumes zero canopy interception capacity for this run, UNLESS minInterceptCap (minimum interception capacity) is bigger than zero.' + '\n'
-			logger.warning(msg)
-			self.coverFractionNC = None               
-			self.interceptCapNC  = None
+            msg = 'The netcdf files for interceptCapNC (interception capacity) and/or coverFraction (canopy cover fraction) are NOT defined for the landCover type: ' + self.name + '\n'
+            msg = 'This run assumes zero canopy interception capacity for this run, UNLESS minInterceptCap (minimum interception capacity) is bigger than zero.' + '\n'
+            logger.warning(msg)
+            self.coverFractionNC = None               
+            self.interceptCapNC  = None
 
         # for reporting: output in netCDF files:
         self.report = True
@@ -291,6 +311,67 @@ class LandCover(object):
                                                     var,"undefined")
 
 
+    def updateIrrigationWaterEfficiency(self,currTimeStep):
+        #-RvB: irrigation water efficiency
+        # this reads in the irrigation water efficiency from the configuration file
+        # at the start of each calendar year - it can optionally handle netCDF files,
+        # PCRaster maps or values
+
+        var = 'irrigationWaterEfficiency'
+
+        if var in list(self.iniItemsLC.keys()) or 'irrigationEfficiency' in list(self.iniItemsLC.keys()) and (self.iniItemsLC['name'].startswith('irr')):
+
+            msg = "Irrigation efficiency is set based on the file defined in the landCoverOptions."
+            
+            if 'irrigationWaterEfficiency' in list(self.iniItemsLC.keys()):
+                self.iniItemsLC[var] = self.iniItemsLC['irrigationWaterEfficiency']
+
+            input = self.iniItemsLC[var]
+
+            try:
+                            # static input
+                            self.irrigationEfficiency = vos.readPCRmapClone(input,self.cloneMap,
+                                            self.tmpDir,self.inputDir)
+            except:
+                            # dynamic input
+                            if 'nc' in os.path.splitext(input)[1]:
+                                #-netCDF file
+                                ncFileIn = vos.getFullPath(input,self.inputDir)
+                                self.irrigationEfficiency = vos.netcdf2PCRobjClone(ncFileIn,var, \
+                           currTimeStep, useDoy = 'yearly',\
+                           cloneMapFileName = self.cloneMap)
+                            else:
+                                #-assumed PCRaster file, add year and '.map' extension
+                                input= input + '%04d.map' % currTimeStep.year
+                                self.irrigationEfficiency = vos.readPCRmapClone(input,self.cloneMap,
+                                            self.tmpDir,self.inputDir)
+            
+            # extrapolate efficiency map:                                                # TODO: Make a better extrapolation algorithm (considering cell size, etc.). 
+            window_size = 1.25 * pcr.clone().cellSize()
+            window_size = min(window_size, min(pcr.clone().nrRows(), pcr.clone().nrCols())*pcr.clone().cellSize())
+            try:
+                self.irrigationEfficiency = pcr.cover(self.irrigationEfficiency, pcr.windowaverage(self.irrigationEfficiency, window_size))
+                self.irrigationEfficiency = pcr.cover(self.irrigationEfficiency, pcr.windowaverage(self.irrigationEfficiency, window_size))
+                self.irrigationEfficiency = pcr.cover(self.irrigationEfficiency, pcr.windowaverage(self.irrigationEfficiency, window_size))
+                self.irrigationEfficiency = pcr.cover(self.irrigationEfficiency, pcr.windowaverage(self.irrigationEfficiency, window_size))
+                self.irrigationEfficiency = pcr.cover(self.irrigationEfficiency, pcr.windowaverage(self.irrigationEfficiency, window_size))
+                self.irrigationEfficiency = pcr.cover(self.irrigationEfficiency, pcr.windowaverage(self.irrigationEfficiency, 0.75))
+                self.irrigationEfficiency = pcr.cover(self.irrigationEfficiency, pcr.windowaverage(self.irrigationEfficiency, 1.00))
+                self.irrigationEfficiency = pcr.cover(self.irrigationEfficiency, pcr.windowaverage(self.irrigationEfficiency, 1.50))
+            except:                                                 
+                pass
+
+            self.irrigationEfficiency = pcr.cover(self.irrigationEfficiency, 1.0)
+            self.irrigationEfficiency = pcr.max(0.1, self.irrigationEfficiency)
+            self.irrigationEfficiency = pcr.ifthen(self.landmask, self.irrigationEfficiency)
+
+        else:
+
+            msg = "Irrigation efficiency is set based on the file defined in the landSurfaceOptions (for irrigated land cover types only)."
+        
+        logger.info(msg)    
+
+
     def get_land_cover_parameters(self, date_in_string = None, get_only_fracVegCover = False):
    
         # obtain the land cover parameters 
@@ -341,7 +422,7 @@ class LandCover(object):
             #   3. approximated from the minSoilDepthFrac and maxSoilDepthFrac
 
             lc_parameters['arnoBeta'] = None
-            if 'arnoBeta' not in self.iniItemsLC.keys() and get_only_fracVegCover == False: self.iniItemsLC['arnoBeta'] = "None" 
+            if 'arnoBeta' not in list(self.iniItemsLC.keys()) and get_only_fracVegCover == False: self.iniItemsLC['arnoBeta'] = "None" 
 
             # - option one (top priority): using a pcraster file
             if self.iniItemsLC['arnoBeta'] != "None" and get_only_fracVegCover == False: 
@@ -351,7 +432,11 @@ class LandCover(object):
                                                                 self.tmpDir, self.inputDir)
 
             # - option two: included in the netcdf file
-            if isinstance(lc_parameters['arnoBeta'], types.NoneType) and landCoverPropertiesNC != None and get_only_fracVegCover == False:   
+            if (
+                lc_parameters['arnoBeta'] is None
+                and landCoverPropertiesNC is not None
+                and not get_only_fracVegCover
+            ):   
                                     
                 if vos.checkVariableInNC(landCoverPropertiesNC, "arnoBeta"):
                     
@@ -359,7 +444,7 @@ class LandCover(object):
                     lc_parameters['arnoBeta'] = vos.netcdf2PCRobjCloneWithoutTime(landCoverPropertiesNC, 'arnoBeta', self.cloneMap)
                                         
             # - option three: approximated from the minSoilDepthFrac and maxSoilDepthFrac
-            if isinstance(lc_parameters['arnoBeta'], types.NoneType) and get_only_fracVegCover == False:
+            if lc_parameters['arnoBeta'] is None and not get_only_fracVegCover:
    
                 logger.debug("The parameter arnoBeta is approximated from the minSoilDepthFrac and maxSoilDepthFrac values.")
                 
@@ -409,8 +494,7 @@ class LandCover(object):
                                                                  self.tmpDir, self.inputDir)
 
             # if not defined, arnoBeta would be approximated from the minSoilDepthFrac and maxSoilDepthFrac
-            if get_only_fracVegCover == False and\
-               isinstance(lc_parameters['arnoBeta'], types.NoneType):
+            if not get_only_fracVegCover and lc_parameters['arnoBeta'] is None:
 
                 logger.debug("The parameter arnoBeta is approximated from the minSoilDepthFrac and maxSoilDepthFrac values.")
 
@@ -503,11 +587,11 @@ class LandCover(object):
         min_percolation_loss = 0.006
         max_percolation_loss = 0.008 
         # - Minimum and maximum percolation loss values given in the ini or configuration file:
-        if 'minPercolationLoss' in iniPaddyOptions.keys() and iniPaddyOptions['minPercolationLoss'] != "None":
-            min_percolation_loss = vos.readPCRmapClone(iniPaddyOptions['minPercolationLoss'], self.cloneMap, 	
+        if 'minPercolationLoss' in list(iniPaddyOptions.keys()) and iniPaddyOptions['minPercolationLoss'] != "None":
+            min_percolation_loss = vos.readPCRmapClone(iniPaddyOptions['minPercolationLoss'], self.cloneMap,    
                                                        self.tmpDir, self.inputDir)
-        if 'maxPercolationLoss' in iniPaddyOptions.keys() and iniPaddyOptions['maxPercolationLoss'] != "None":
-            min_percolation_loss = vos.readPCRmapClone(iniPaddyOptions['maxPercolationLoss'], self.cloneMap, 	
+        if 'maxPercolationLoss' in list(iniPaddyOptions.keys()) and iniPaddyOptions['maxPercolationLoss'] != "None":
+            min_percolation_loss = vos.readPCRmapClone(iniPaddyOptions['maxPercolationLoss'], self.cloneMap,    
                                                        self.tmpDir, self.inputDir)
         # - percolation loss at paddy fields (m/day)
         design_percolation_loss = pcr.max(min_percolation_loss, \
@@ -598,9 +682,9 @@ class LandCover(object):
                                                                                 
                                                                                 # original Rens's line: # weighed root fractions
                                                                                 #                        RFW1[TYPE]= if(RFRAC1[TYPE]+RFRAC2[TYPE] > 0,
-                                                                                #                        	min(1.0,RFRAC1[TYPE]/(RFRAC1[TYPE]+RFRAC2[TYPE])),0.0);
+                                                                                #                           min(1.0,RFRAC1[TYPE]/(RFRAC1[TYPE]+RFRAC2[TYPE])),0.0);
                                                                                 #                        RFW2[TYPE]= if(RFRAC1[TYPE]+RFRAC2[TYPE] > 0.0,
-                                                                                #                        	min(1.0,RFRAC2[TYPE]/(RFRAC1[TYPE]+RFRAC2[TYPE])),0.0);
+                                                                                #                           min(1.0,RFRAC2[TYPE]/(RFRAC1[TYPE]+RFRAC2[TYPE])),0.0);
 
         if self.numberOfLayers == 3: 
             # root fractions
@@ -865,7 +949,7 @@ class LandCover(object):
         self.getPotET(meteo,currTimeStep) 
         
         # calculate interception evaporation flux (m/day) and update interception storage (m)
-        self.interceptionUpdate(meteo, currTimeStep)    	 
+        self.interceptionUpdate(meteo, currTimeStep)         
 
         # calculate snow melt (or refreezing)
         if self.snowModuleType  == "Simple": self.snowMeltHBVSimple(meteo,currTimeStep)
@@ -1641,9 +1725,12 @@ class LandCover(object):
               available_water_volume = pcr.max(0.00, desalinationWaterUse*routing.cellArea),\
               allocation_zones = allocSegments,\
               zone_area = self.segmentArea,\
-              high_volume_treshold = 1000000.,\
+              high_volume_treshold = None,\
               debug_water_balance = True,\
-              extra_info_for_water_balance_reporting = str(currTimeStep.fulldate), landmask = self.landmask)
+              extra_info_for_water_balance_reporting = str(currTimeStep.fulldate), 
+              landmask = self.landmask,
+              ignore_small_values = False,
+              prioritizing_local_source = self.prioritizeLocalSourceToMeetWaterDemand)
         #     
             self.desalinationAbstraction = volDesalinationAbstraction / routing.cellArea
             self.desalinationAllocation  = volDesalinationAllocation  / routing.cellArea
@@ -1700,6 +1787,9 @@ class LandCover(object):
         # - for industrial and domestic
         swAbstractionFraction_industrial_domestic = pcr.min(swAbstractionFractionDict['max_for_non_irrigation'],\
                                                             swAbstractionFractionDict['estimate'])
+        if swAbstractionFractionDict['non_irrigation'] is not None:
+            swAbstractionFraction_industrial_domestic = swAbstractionFractionDict['non_irrigation']
+
         surface_water_demand_estimate = swAbstractionFraction_industrial_domestic * remainingIndustrialDomestic
         # - for irrigation and livestock 
         surface_water_irrigation_demand_estimate = swAbstractionFractionDict['irrigation'] * remainingIrrigationLivestock
@@ -1734,27 +1824,19 @@ class LandCover(object):
         #  
             logger.debug("Allocation of surface water abstraction.")
         #  
-            # - fast alternative (may introducing some rounding errors)
             volActSurfaceWaterAbstract, volAllocSurfaceWaterAbstract = \
              vos.waterAbstractionAndAllocation(
              water_demand_volume = surface_water_demand*routing.cellArea,\
              available_water_volume = pcr.max(0.00, routing.readAvlChannelStorage),\
              allocation_zones = allocSegments,\
              zone_area = self.segmentArea,\
-             high_volume_treshold = 1000000.,\
+             high_volume_treshold = None,\
              debug_water_balance = True,\
-             extra_info_for_water_balance_reporting = str(currTimeStep.fulldate), landmask = self.landmask)
-        #  
-            #~ # - high precision alternative - STILL UNDER DEVELOPMENT (last progress: not much improvement)
-            #~ volActSurfaceWaterAbstract, volAllocSurfaceWaterAbstract = \
-             #~ vos.waterAbstractionAndAllocationHighPrecision(
-             #~ water_demand_volume = surface_water_demand*routing.cellArea,\
-             #~ available_water_volume = pcr.max(0.00, routing.readAvlChannelStorage),\
-             #~ allocation_zones = allocSegments,\
-             #~ zone_area = self.segmentArea,\
-             #~ debug_water_balance = True,\
-             #~ extra_info_for_water_balance_reporting = str(currTimeStep.fulldate))
-        #  
+             extra_info_for_water_balance_reporting = str(currTimeStep.fulldate), 
+             landmask = self.landmask,
+             ignore_small_values = False,
+             prioritizing_local_source = self.prioritizeLocalSourceToMeetWaterDemand)
+
             self.actSurfaceWaterAbstract   = volActSurfaceWaterAbstract / routing.cellArea
             self.allocSurfaceWaterAbstract = volAllocSurfaceWaterAbstract / routing.cellArea
         #  
@@ -1924,9 +2006,12 @@ class LandCover(object):
              available_water_volume = pcr.max(0.00, readAvlStorGroundwater*routing.cellArea),\
              allocation_zones = groundwater.allocSegments,\
              zone_area = groundwater.segmentArea,\
-             high_volume_treshold = 1000000.,\
+             high_volume_treshold = None,\
              debug_water_balance = True,\
-             extra_info_for_water_balance_reporting = str(currTimeStep.fulldate),  landmask = self.landmask)
+             extra_info_for_water_balance_reporting = str(currTimeStep.fulldate),  
+             landmask = self.landmask,
+             ignore_small_values = False,
+             prioritizing_local_source = self.prioritizeLocalSourceToMeetWaterDemand)
             
             # non fossil groundwater abstraction and allocation in meter
             self.nonFossilGroundwaterAbs   = volActGroundwaterAbstract  / routing.cellArea 
@@ -2143,14 +2228,17 @@ class LandCover(object):
 
                     # fossil groundwater abstraction and allocation in volume (unit: m3)
                     volActGroundwaterAbstract, volAllocGroundwaterAbstract = \
-                     vos.waterAbstractionAndAllocation(
-                     water_demand_volume = self.potFossilGroundwaterAbstract*routing.cellArea,\
-                     available_water_volume = pcr.max(0.00, readAvlFossilGroundwater*routing.cellArea),\
-                     allocation_zones = groundwater.allocSegments,\
-                     zone_area = groundwater.segmentArea,\
-                     high_volume_treshold = 1000000.,\
-                     debug_water_balance = True,\
-                     extra_info_for_water_balance_reporting = str(currTimeStep.fulldate),  landmask = self.landmask)
+                       vos.waterAbstractionAndAllocation(
+                       water_demand_volume = self.potFossilGroundwaterAbstract*routing.cellArea,\
+                       available_water_volume = pcr.max(0.00, readAvlFossilGroundwater*routing.cellArea),\
+                       allocation_zones = groundwater.allocSegments,\
+                       zone_area = groundwater.segmentArea,\
+                       high_volume_treshold = None,\
+                       debug_water_balance = True,\
+                       extra_info_for_water_balance_reporting = str(currTimeStep.fulldate),  
+                       landmask = self.landmask,
+                       ignore_small_values = False,
+                       prioritizing_local_source = self.prioritizeLocalSourceToMeetWaterDemand)
                     
                     # fossil groundwater abstraction and allocation in meter
                     self.fossilGroundwaterAbstr = volActGroundwaterAbstract  /routing.cellArea 
@@ -2305,12 +2393,12 @@ class LandCover(object):
         # 
         # WMIN = root zone water storage capacity, minimum values
         # WMAX = root zone water storage capacity, area-averaged values
-        # W	   = actual water storage in root zone
+        # W    = actual water storage in root zone
         # WRANGE  = WMAX - WMIN
         # DW      = WMAX-W 
         # WFRAC   = DW/WRANGE ; WFRAC capped at 1
         # WFRACB  = DW/WRANGE raised to the power (1/(b+1))
-        # SATFRAC =	fractional saturated area
+        # SATFRAC = fractional saturated area
         # WACT    = actual water storage within rootzone
 
         self.satAreaFracOld = self.satAreaFrac
@@ -3359,7 +3447,7 @@ class LandCover(object):
             #
             # any excess above storCapUpp is handed to topWaterLayer
             self.satExcess = pcr.max(0.,self.storUpp - \
-                               self.parameters.storCapUpp)									
+                               self.parameters.storCapUpp)                                  
             self.topWaterLayer =  self.topWaterLayer + self.satExcess
         
             # any excess above minTopWaterLayer is released as directRunoff                               
@@ -3495,7 +3583,7 @@ class LandCover(object):
             #
             # any excess above storCapUpp is handed to topWaterLayer
             self.satExcess     = pcr.max(0.,self.storUpp000005 - \
-                                   self.parameters.storCapUpp000005)									
+                                   self.parameters.storCapUpp000005)                                    
             self.topWaterLayer = self.topWaterLayer + self.satExcess
         
             # any excess above minTopWaterLayer is released as directRunoff                               

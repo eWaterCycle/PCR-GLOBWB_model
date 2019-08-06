@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+from __future__ import print_function
+
 import datetime
 import logging
 import sys
@@ -603,13 +605,13 @@ class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
         # small value for comparison
         current_value = self.get_value(long_var_name)
 
-        print 'current value after scaling', current_value
+        print('current value after scaling', current_value)
 
-        print 'value given by user', scaled_new_value
+        print('value given by user', scaled_new_value)
 
         diff = scaled_new_value - current_value
 
-        print "diff now", diff
+        print("diff now", diff)
 
         # scale to model resolution
         big_diff = np.repeat(np.repeat(diff, self.factor, axis=0), self.factor, axis=1)
@@ -632,9 +634,9 @@ class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
     def get_value(self, long_var_name):
         big_map = BmiPCRGlobWB.get_value(self, long_var_name)
 
-        print "getting value original shape " + str(big_map.shape)
-        print "original size " + str(big_map.size)
-        print "nans in original " + str(np.count_nonzero(np.isnan(big_map)))
+        print("getting value original shape " + str(big_map.shape))
+        print("original size " + str(big_map.size))
+        print("nans in original " + str(np.count_nonzero(np.isnan(big_map))))
 
         result = np.zeros(shape=self.get_grid_shape(long_var_name))
 
@@ -643,11 +645,11 @@ class ScaledBmiPCRGlobWB(BmiPCRGlobWB):
         else:
             raise Exception("no downsample, cython compile imagemean")
 
-        print "getting value new shape " + str(result.shape)
-        print "result size " + str(result.size)
-        print "nans count in result " + str(np.count_nonzero(np.isnan(result)))
+        print("getting value new shape " + str(result.shape))
+        print("result size " + str(result.size))
+        print("nans count in result " + str(np.count_nonzero(np.isnan(result))))
 
-        print "getting value", result
+        print("getting value", result)
         sys.stdout.flush()
 
         return result
