@@ -233,7 +233,7 @@ class BmiPCRGlobWB(EBmi):
         return "pcrglobwb"
 
     def get_input_var_names(self):
-        input_var_names=[]
+        input_var_names=['channel_storage']
         
         if self.model.landSurface.numberOfSoilLayers == 3:
             input_var_names.extend(["near_surface_soil_saturation_degree"])
@@ -469,7 +469,20 @@ class BmiPCRGlobWB(EBmi):
         self.model.meteo.temperature = temperature
 
         self.reporting.temperature  = pcr.ifthen(self.model.routing.landmask, self.model.meteo.temperature)
+    def set_channel_storage(self,src):
+        mask = np.isnan(src)
+        src[mask] = 1e20
+        channel_storage = pcr.numpy2pcr(pcr.Scalar, src, 1e20)
 
+        channel_storage = pcr.ifthen(self.model.meteo.landmask, channel_storage)
+        #-----------------------------------------------------------------------
+
+        channel_storage = pcr.max(0., channel_storage)
+        channel_storage = pcr.cover( channel_storage, 0.0)
+                
+        self.model.routing.channelStorage = channel_storage
+
+        self.reporting.channel_storage = pcr.ifthen(self.model.routing.landmask, self.model.routing.channelStorage)
 
     def set_value(self, long_var_name, src):
 
@@ -483,6 +496,8 @@ class BmiPCRGlobWB(EBmi):
         # self.model.dumpStateDir(self.configuration.endStateDir + "/pre/")
 
         # print "got value to set", src
+
+        src = np.reshape(src, self.shape)
 
         # make sure the raster is the right side up
         src = np.flipud(src)
@@ -506,6 +521,8 @@ class BmiPCRGlobWB(EBmi):
             self.set_precipitation(src)
         elif long_var_name == "temperature":
             self.set_temperature(src)
+        elif long_var_name == "channel_storage":
+            self.set_channel_storage(src)
         else:
             raise Exception("unknown var name" + long_var_name)
 

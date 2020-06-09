@@ -1591,7 +1591,7 @@ def findLastYearInNCTime(ncTimeVariable):
     # last datetime
     last_datetime = nc.num2date(ncTimeVariable[len(ncTimeVariable) - 1],\
                                 ncTimeVariable.units,\
-                                ncTimeVariable.calendar) 
+                                str(ncTimeVariable.calendar)) 
     
     return last_datetime.year
 
@@ -1600,7 +1600,7 @@ def findFirstYearInNCTime(ncTimeVariable):
     # first datetime
     first_datetime = nc.num2date(ncTimeVariable[0],\
                                 ncTimeVariable.units,\
-                                ncTimeVariable.calendar) 
+                                str(ncTimeVariable.calendar)) 
     
     return first_datetime.year
 
