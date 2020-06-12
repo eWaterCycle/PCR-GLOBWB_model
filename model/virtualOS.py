@@ -312,7 +312,7 @@ def netcdf2PCRobjClone(ncFile,varName,dateInput,\
                 msg += "\n"
                 logger.warning(msg)
         try:
-            idx = nc.date2index(date, f.variables['time'], calendar = f.variables['time'].calendar, \
+            idx = nc.date2index(date, f.variables['time'], calendar = str(f.variables['time'].calendar), \
                                 select ='exact')
             msg = "The date "+str(date.year)+"-"+str(date.month)+"-"+str(date.day)+" is available. The 'exact' option is used while selecting netcdf time."
             logger.debug(msg)
@@ -320,14 +320,14 @@ def netcdf2PCRobjClone(ncFile,varName,dateInput,\
             msg = "The date "+str(date.year)+"-"+str(date.month)+"-"+str(date.day)+" is NOT available. The 'exact' option CANNOT be used while selecting netcdf time."
             logger.debug(msg)
             try:                                  
-                idx = nc.date2index(date, f.variables['time'], calendar = f.variables['time'].calendar, \
+                idx = nc.date2index(date, f.variables['time'], calendar = str(f.variables['time'].calendar), \
                                     select = 'before')
                 msg  = "\n"
                 msg += "WARNING related to the netcdf file: "+str(ncFile)+" ; variable: "+str(varName)+" !!!!!!"+"\n"
                 msg += "The date "+str(date.year)+"-"+str(date.month)+"-"+str(date.day)+" is NOT available. The 'before' option is used while selecting netcdf time."
                 msg += "\n"
             except:
-                idx = nc.date2index(date, f.variables['time'], calendar = f.variables['time'].calendar, \
+                idx = nc.date2index(date, f.variables['time'], calendar = str(f.variables['time'].calendar), \
                                     select = 'after')
                 msg  = "\n"
                 msg += "WARNING related to the netcdf file: "+str(ncFile)+" ; variable: "+str(varName)+" !!!!!!"+"\n"
@@ -512,7 +512,7 @@ def netcdf2PCRobjCloneJOYCE(ncFile,varName,dateInput,\
                 msg += "\n"
                 logger.warning(msg)
         try:
-            idx = nc.date2index(date, f.variables['time'], calendar = f.variables['time'].calendar, \
+            idx = nc.date2index(date, f.variables['time'], calendar = str(f.variables['time'].calendar), \
                                 select ='exact')
             msg = "The date "+str(date.year)+"-"+str(date.month)+"-"+str(date.day)+" is available. The 'exact' option is used while selecting netcdf time."
             logger.debug(msg)
@@ -520,14 +520,14 @@ def netcdf2PCRobjCloneJOYCE(ncFile,varName,dateInput,\
             msg = "The date "+str(date.year)+"-"+str(date.month)+"-"+str(date.day)+" is NOT available. The 'exact' option CANNOT be used while selecting netcdf time."
             logger.debug(msg)
             try:                                  
-                idx = nc.date2index(date, f.variables['time'], calendar = f.variables['time'].calendar, \
+                idx = nc.date2index(date, f.variables['time'], calendar = str(f.variables['time'].calendar), \
                                     select = 'before')
                 msg  = "\n"
                 msg += "WARNING related to the netcdf file: "+str(ncFile)+" ; variable: "+str(varName)+" !!!!!!"+"\n"
                 msg += "The date "+str(date.year)+"-"+str(date.month)+"-"+str(date.day)+" is NOT available. The 'before' option is used while selecting netcdf time."
                 msg += "\n"
             except:
-                idx = nc.date2index(date, f.variables['time'], calendar = f.variables['time'].calendar, \
+                idx = nc.date2index(date, f.variables['time'], calendar = str(f.variables['time'].calendar), \
                                     select = 'after')
                 msg  = "\n"
                 msg += "WARNING related to the netcdf file: "+str(ncFile)+" ; variable: "+str(varName)+" !!!!!!"+"\n"
@@ -802,7 +802,7 @@ def netcdf2PCRobj(ncFile,varName,dateInput):
     
     # time index (in the netCDF file)
     nctime = f.variables['time']  # A netCDF time variable object.
-    idx = nc.date2index(date, nctime, calendar=nctime.calendar, \
+    idx = nc.date2index(date, nctime, calendar=str(nctime.calendar), \
                                                  select='exact') 
     
     # convert to PCR object and close f
